@@ -152,6 +152,22 @@ The inference wrapper emits the integration contract expected by the communicati
 
 `logits` contains one value for each class in `label_mapping.json`; `confidence` is the softmax probability of the selected gloss. The timestamp is supplied by the caller or generated at inference time.
 
+## RecognitionAdapter integration
+
+Use the adapter without changing the BiLSTM model:
+
+```python
+from scripts.recognition_adapter import RecognitionAdapter
+
+adapter = RecognitionAdapter(
+  "training_outputs/bilstm_baseline/best_model.pt",
+  "training_outputs/bilstm_baseline/label_mapping.json",
+)
+result = adapter.predict(features, mask, timestamp)
+```
+
+`features` must have shape `(T, 258)` and `mask` must have shape `(T, 75)`. `result` contains exactly `gloss`, `confidence`, and `timestamp`, matching `CONTRACT.md`. The adapter also validates the two input shapes before invoking the model.
+
 ## Scope and limitations
 
 This is a documented landmark baseline, not a novel preprocessing method. It is suitable for the first recognition experiment. Later experiments can compare face/non-manual features, alternate normalization, temporal resampling, augmentation, and signer-aware splits when signer information becomes available.
