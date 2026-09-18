@@ -1,0 +1,20 @@
+INCLUDE-50 Adjectives preprocessing report
+
+Total videos found: 233
+Total videos processed: 233
+Successful extractions: 233
+Failed extractions: 0
+Classes processed: 1. loud, 2. quiet, 3. happy, 78. long, 79. short, 83. big large, 84. small little, 87. hot, 91. new, 94. good, 97. dry
+Feature dimension: 258
+Minimum sequence length: 36
+Maximum sequence length: 83
+Average sequence length: 55.91
+Invalid landmark files: 0
+Failure categories:
+
+Feature layout per frame:
+  left hand: 21 landmarks x (x, y, z)
+  right hand: 21 landmarks x (x, y, z)
+  pose: 33 landmarks x (x, y, z, visibility)
+Missing landmarks are zero-filled and represented in the 75-element mask.
+Coordinates are normalized around the shoulder midpoint when pose is available.
