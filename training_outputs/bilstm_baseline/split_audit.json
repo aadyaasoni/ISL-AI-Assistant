@@ -1,0 +1,53 @@
+{
+  "sample_counts": {
+    "train": 169,
+    "val": 20,
+    "test": 44
+  },
+  "class_counts": {
+    "train": {
+      "1. loud": 13,
+      "2. quiet": 16,
+      "3. happy": 16,
+      "78. long": 14,
+      "79. short": 14,
+      "83. big large": 15,
+      "84. small little": 16,
+      "87. hot": 14,
+      "91. new": 16,
+      "94. good": 16,
+      "97. dry": 19
+    },
+    "val": {
+      "1. loud": 2,
+      "2. quiet": 2,
+      "3. happy": 2,
+      "78. long": 1,
+      "79. short": 2,
+      "83. big large": 2,
+      "84. small little": 2,
+      "87. hot": 1,
+      "91. new": 2,
+      "94. good": 2,
+      "97. dry": 2
+    },
+    "test": {
+      "1. loud": 6,
+      "2. quiet": 3,
+      "3. happy": 3,
+      "78. long": 6,
+      "79. short": 6,
+      "83. big large": 4,
+      "84. small little": 4,
+      "87. hot": 6,
+      "91. new": 3,
+      "94. good": 3
+    }
+  },
+  "cross_split_duplicates": {
+    "original_video_path": [],
+    "sample_id": [],
+    "processed_file_path": []
+  },
+  "cross_split_filename_collisions": []
+}

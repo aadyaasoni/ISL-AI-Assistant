@@ -1,0 +1,18 @@
+                  precision    recall  f1-score   support
+
+         1. loud       0.86      1.00      0.92         6
+        2. quiet       0.75      1.00      0.86         3
+        3. happy       1.00      0.67      0.80         3
+        78. long       0.86      1.00      0.92         6
+       79. short       0.50      0.83      0.62         6
+   83. big large       1.00      0.75      0.86         4
+84. small little       0.50      0.25      0.33         4
+         87. hot       1.00      0.67      0.80         6
+         91. new       0.33      0.33      0.33         3
+        94. good       0.50      0.33      0.40         3
+
+        accuracy                           0.73        44
+       macro avg       0.73      0.68      0.69        44
+    weighted avg       0.75      0.73      0.72        44
+
+97. dry: not evaluated on test because the original test split has 0 samples.
