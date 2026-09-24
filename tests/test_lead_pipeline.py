@@ -1,6 +1,11 @@
 import unittest
 
-from src.lead_pipeline import ConversationAgent, Orchestrator, RecognitionRuntime
+from src.lead_pipeline import (
+    ConversationAgent,
+    GlossClipResolver,
+    Orchestrator,
+    RecognitionRuntime,
+)
 
 
 class FakeRecognizer:
@@ -96,6 +101,34 @@ class LeadPipelineTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             agent.respond({"intent": "greeting", "entities": {}, "slots": {}})
+
+    def test_avatar_resolver_caches_repeated_glosses(self) -> None:
+        loaded = []
+
+        def load_clip(path):
+            loaded.append(path)
+            return f"loaded:{path}"
+
+        resolver = GlossClipResolver(
+            {"hello": "clips/hello.glb", "dry": "clips/dry.glb"},
+            load_clip,
+        )
+
+        result = resolver.resolve(["HELLO", "dry", "hello"])
+
+        self.assertEqual(result, [
+            "loaded:clips/hello.glb",
+            "loaded:clips/dry.glb",
+            "loaded:clips/hello.glb",
+        ])
+        self.assertEqual(loaded, ["clips/hello.glb", "clips/dry.glb"])
+        self.assertEqual(resolver.cache_size, 2)
+
+    def test_avatar_resolver_rejects_unmapped_gloss(self) -> None:
+        resolver = GlossClipResolver({}, lambda path: path)
+
+        with self.assertRaises(KeyError):
+            resolver.resolve(["unknown"])
 
 
 if __name__ == "__main__":
