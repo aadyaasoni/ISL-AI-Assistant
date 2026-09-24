@@ -145,6 +145,22 @@ class LeadPipelineTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             resolver.resolve(["unknown"])
 
+    def test_avatar_resolver_uses_configured_fallback(self) -> None:
+        loaded = []
+        resolver = GlossClipResolver(
+            {"hello": "clips/hello.glb"},
+            lambda path: loaded.append(path) or f"loaded:{path}",
+            fallback_clip="clips/repeat.glb",
+        )
+
+        result = resolver.resolve(["unknown", "another-unknown"])
+
+        self.assertEqual(result, [
+            "loaded:clips/repeat.glb",
+            "loaded:clips/repeat.glb",
+        ])
+        self.assertEqual(loaded, ["clips/repeat.glb"])
+
     def test_evaluation_reports_meaning_preservation(self) -> None:
         cases = [
             EvaluationCase(
