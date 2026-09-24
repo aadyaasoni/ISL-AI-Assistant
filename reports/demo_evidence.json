@@ -1,0 +1,68 @@
+{
+  "samples": 3,
+  "cases": [
+    {
+      "sample_id": "1._loud_MVI_5177_0222",
+      "expected_gloss": "1. loud",
+      "route_status": "clarification_required",
+      "route_reason": "low_confidence",
+      "prediction": {
+        "gloss": "1. loud",
+        "confidence": 0.5707680583000183,
+        "timestamp": 0.0
+      },
+      "avatar_clip": "pending://avatar-assets",
+      "avatar_status": "pending-assets"
+    },
+    {
+      "sample_id": "2._quiet_MVI_5180_0210",
+      "expected_gloss": "2. quiet",
+      "route_status": "clarification_required",
+      "route_reason": "unknown_gloss",
+      "prediction": {
+        "gloss": "2. quiet",
+        "confidence": 0.6770732402801514,
+        "timestamp": 1.0
+      },
+      "avatar_clip": "pending://avatar-assets",
+      "avatar_status": "pending-assets"
+    },
+    {
+      "sample_id": "3._happy_MVI_5183_0224",
+      "expected_gloss": "3. happy",
+      "route_status": "clarification_required",
+      "route_reason": "low_confidence",
+      "prediction": {
+        "gloss": "79. short",
+        "confidence": 0.28236427903175354,
+        "timestamp": 2.0
+      },
+      "avatar_clip": "pending://avatar-assets",
+      "avatar_status": "pending-assets"
+    }
+  ],
+  "failure_events": [
+    {
+      "reason": "low_confidence",
+      "gloss": "1. loud",
+      "confidence": 0.5707680583000183,
+      "timestamp": 0.0
+    },
+    {
+      "reason": "unknown_gloss",
+      "gloss": "2. quiet",
+      "confidence": 0.6770732402801514,
+      "timestamp": 1.0
+    },
+    {
+      "reason": "low_confidence",
+      "gloss": "79. short",
+      "confidence": 0.28236427903175354,
+      "timestamp": 2.0
+    }
+  ],
+  "notes": [
+    "This is a reproducible evidence run, not a recorded video.",
+    "Avatar playback remains pending until licensed model and animation assets are available."
+  ]
+}
