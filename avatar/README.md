@@ -18,3 +18,5 @@ The avatar directory is reserved for the communication-layer presentation assets
 - Map animation names to the model labels in a separate manifest rather than hardcoding paths in recognition code.
 
 Once the model and clips are available, add an `asset_manifest.json` containing the model path, animation names, supported glosses, and license metadata.
+
+Run `python3 scripts/validate_avatar_assets.py` before enabling playback. It rejects missing files, duplicate animation names, unsupported model formats, and incomplete license metadata. The current manifest intentionally validates as `pending-assets`.
