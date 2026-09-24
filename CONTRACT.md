@@ -41,3 +41,29 @@ result = adapter.predict(features, mask, timestamp)
 ```
 
 `RecognitionAdapter.predict` returns the three contract fields without requiring changes to the model implementation.
+
+## Orchestrator output
+
+The lead-owned orchestrator accepts the model output above. Predictions below
+the default confidence threshold of `0.60` must request clarification instead
+of reaching the meaning layer.
+
+Accepted predictions produce:
+
+```json
+{
+  "status": "accepted",
+  "meaning": {
+    "intent": "greeting",
+    "entities": {},
+    "slots": {},
+    "source_gloss": "hello"
+  },
+  "response_text": "Hello. How can I help you?",
+  "confidence": 0.92,
+  "timestamp": 0.0
+}
+```
+
+Low-confidence or unknown glosses produce `status: "clarification_required"`
+and must not be silently converted into a meaning frame.
