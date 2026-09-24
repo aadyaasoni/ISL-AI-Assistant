@@ -1,6 +1,6 @@
 import unittest
 
-from src.lead_pipeline import Orchestrator, RecognitionRuntime
+from src.lead_pipeline import ConversationAgent, Orchestrator, RecognitionRuntime
 
 
 class FakeRecognizer:
@@ -67,6 +67,35 @@ class LeadPipelineTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "clarification_required")
         self.assertEqual(result["reason"], "low_confidence")
+
+    def test_conversation_agent_keeps_bounded_state(self) -> None:
+        agent = ConversationAgent()
+        meaning = {"intent": "greeting", "entities": {}, "slots": {}}
+
+        for _ in range(8):
+            agent.respond(meaning)
+
+        self.assertEqual(len(agent.state.turns), 6)
+
+    def test_conversation_agent_uses_constrained_responder(self) -> None:
+        seen_turns = []
+
+        def responder(meaning, turns):
+            seen_turns.append(len(turns))
+            return "Constrained response"
+
+        agent = ConversationAgent(response_generator=responder)
+        meaning = {"intent": "greeting", "entities": {}, "slots": {}}
+
+        self.assertEqual(agent.respond(meaning), "Constrained response")
+        self.assertEqual(agent.respond(meaning), "Constrained response")
+        self.assertEqual(seen_turns, [0, 1])
+
+    def test_conversation_agent_rejects_empty_responder_output(self) -> None:
+        agent = ConversationAgent(response_generator=lambda meaning, turns: " ")
+
+        with self.assertRaises(ValueError):
+            agent.respond({"intent": "greeting", "entities": {}, "slots": {}})
 
 
 if __name__ == "__main__":
