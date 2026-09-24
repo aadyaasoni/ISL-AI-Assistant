@@ -30,3 +30,14 @@ The current wrapper also includes review/debug fields:
 - `sequence_length`: input `T`
 
 `confidence` is the softmax probability of `gloss`. `timestamp` is supplied by the caller or generated at inference time.
+
+## Python integration
+
+```python
+from scripts.recognition_adapter import RecognitionAdapter
+
+adapter = RecognitionAdapter(checkpoint_path, label_map_path)
+result = adapter.predict(features, mask, timestamp)
+```
+
+`RecognitionAdapter.predict` returns the three contract fields without requiring changes to the model implementation.
