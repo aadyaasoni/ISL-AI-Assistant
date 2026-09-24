@@ -168,6 +168,12 @@ result = adapter.predict(features, mask, timestamp)
 
 `features` must have shape `(T, 258)` and `mask` must have shape `(T, 75)`. `result` contains exactly `gloss`, `confidence`, and `timestamp`, matching `CONTRACT.md`. The adapter also validates the two input shapes before invoking the model.
 
+## Validation and avatar preparation
+
+The real-sample checks and aggregate evaluation results are recorded in [`reports/real_sample_validation.md`](reports/real_sample_validation.md). The adapter test suite currently passes all six tests.
+
+Avatar integration requirements and the current asset status are documented in [`avatar/README.md`](avatar/README.md), [`avatar/asset_manifest.json`](avatar/asset_manifest.json), and [`avatar/ATTRIBUTION.md`](avatar/ATTRIBUTION.md). No avatar binaries are included until their source and redistribution license are confirmed.
+
 ## Scope and limitations
 
 This is a documented landmark baseline, not a novel preprocessing method. It is suitable for the first recognition experiment. Later experiments can compare face/non-manual features, alternate normalization, temporal resampling, augmentation, and signer-aware splits when signer information becomes available.
