@@ -1,4 +1,5 @@
 import csv
+import base64
 import json
 import mimetypes
 import sys
@@ -16,6 +17,7 @@ LABEL_MAP_PATH = ROOT / "training_outputs/bilstm_baseline/label_mapping.json"
 
 sys.path.insert(0, str(ROOT))
 from scripts.recognition_adapter import RecognitionAdapter
+from scripts.extract_landmarks import build_landmarkers, frame_features
 from src.lead_pipeline import GlossClipResolver, RecognitionRuntime
 
 adapter = RecognitionAdapter(CHECKPOINT_PATH, LABEL_MAP_PATH, device="cpu")
@@ -30,6 +32,10 @@ with METADATA_PATH.open(newline="", encoding="utf-8") as file:
         row for row in csv.DictReader(file) if row["split"] == "test" and row["valid"] == "True"
     ]
 SAMPLES_BY_ID = {row["sample_id"]: row for row in SAMPLE_ROWS}
+HAND_MODEL_PATH = ROOT / "models/mediapipe/hand_landmarker.task"
+POSE_MODEL_PATH = ROOT / "models/mediapipe/pose_landmarker_lite.task"
+camera_landmarkers = None
+camera_timestamp_ms = 0
 
 
 def json_response(handler, payload, status=200):
@@ -59,6 +65,65 @@ class AppHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/infer":
             return self.infer(parse_qs(parsed.query))
         return self.serve_static(parsed.path)
+
+    def do_POST(self):
+        path = urlparse(self.path).path
+        if path == "/api/frame":
+            return self.frame()
+        if path != "/api/infer":
+            return json_response(self, {"error": "Not found"}, 404)
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(content_length))
+            features = np.asarray(payload["features"], dtype=np.float32)
+            mask = np.asarray(payload["mask"], dtype=np.float32)
+            timestamp = float(payload.get("timestamp", 0.0))
+            prediction = adapter.predict(features, mask, timestamp)
+            routed = runtime.orchestrator.route(prediction)
+            avatar_clip = avatar_resolver.resolve([prediction["gloss"]])[0]
+            return json_response(
+                self,
+                {
+                    "prediction": prediction,
+                    "route": routed,
+                    "avatar": {"clip": avatar_clip, "status": "pending-assets"},
+                },
+            )
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            return json_response(self, {"error": str(error)}, 400)
+
+    def frame(self):
+        global camera_landmarkers, camera_timestamp_ms
+        try:
+            import cv2
+            import mediapipe as mp
+
+            content_length = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(content_length))
+            encoded_image = payload["image_base64"].split(",")[-1]
+            image_bytes = base64.b64decode(encoded_image, validate=True)
+            image = cv2.imdecode(np.frombuffer(image_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
+            if image is None:
+                raise ValueError("image_base64 is not a decodable image")
+            if camera_landmarkers is None:
+                camera_landmarkers = build_landmarkers(HAND_MODEL_PATH, POSE_MODEL_PATH)
+            rgb_frame = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+            camera_timestamp_ms = max(camera_timestamp_ms + 1, int(float(payload.get("timestamp_ms", 0))))
+            hand_result = camera_landmarkers[0].detect_for_video(mp_image, camera_timestamp_ms)
+            pose_result = camera_landmarkers[1].detect_for_video(mp_image, camera_timestamp_ms)
+            features, mask = frame_features(hand_result, pose_result)
+            return json_response(
+                self,
+                {
+                    "features": features.tolist(),
+                    "mask": mask.tolist(),
+                    "has_landmarks": bool(np.any(mask)),
+                    "timestamp_ms": camera_timestamp_ms,
+                },
+            )
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError, base64.binascii.Error, ImportError) as error:
+            return json_response(self, {"error": str(error)}, 400)
 
     def infer(self, query):
         sample_id = query.get("sample_id", [""])[0]

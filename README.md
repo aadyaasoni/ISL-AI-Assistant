@@ -170,13 +170,15 @@ result = adapter.predict(features, mask, timestamp)
 
 ## Browser presentation layer
 
-Run the dependency-free local dashboard with:
+Run the local dashboard with the preprocessing environment, which provides MediaPipe and OpenCV:
 
 ```bash
-python3 web/server.py 8000
+venv/bin/python web/server.py 8000
 ```
 
-Open `http://127.0.0.1:8000/` to preview the camera locally and run real `.npz` samples through the checkpoint and lead runtime. The browser camera preview is intentionally local; browser-frame landmark extraction is not yet connected to the Python preprocessing pipeline. The dashboard exposes low-confidence clarification and pending avatar fallback states instead of claiming unsupported clips are playable.
+Open `http://127.0.0.1:8000/` to preview the camera locally, extract MediaPipe hand/pose landmarks, and run short camera sequences through the checkpoint and lead runtime. The dashboard exposes low-confidence clarification and pending avatar fallback states instead of claiming unsupported clips are playable.
+
+The browser sends JPEG frames to `POST /api/frame`; the server returns one normalized feature vector of length `258`, mask vector of length `75`, and a `has_landmarks` flag. Landmark-free frames are not buffered. The browser accumulates 24 valid frames and submits model-ready landmarks to `POST /api/infer` as JSON with `features` shaped `(T, 258)`, `mask` shaped `(T, 75)`, and an optional numeric `timestamp`. Invalid shapes are rejected with HTTP 400.
 
 Run the 24-case runtime evaluation with:
 
