@@ -2,9 +2,11 @@ import unittest
 
 from src.lead_pipeline import (
     ConversationAgent,
+    EvaluationCase,
     GlossClipResolver,
     Orchestrator,
     RecognitionRuntime,
+    evaluate_cases,
 )
 
 
@@ -129,6 +131,37 @@ class LeadPipelineTests(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             resolver.resolve(["unknown"])
+
+    def test_evaluation_reports_meaning_preservation(self) -> None:
+        cases = [
+            EvaluationCase(
+                "greeting-1",
+                {"gloss": "hello", "confidence": 0.95, "timestamp": 1.0},
+                "greeting",
+            ),
+            EvaluationCase(
+                "unknown-1",
+                {"gloss": "unknown", "confidence": 0.95, "timestamp": 2.0},
+                "greeting",
+            ),
+        ]
+
+        report = evaluate_cases(cases, self.orchestrator.route)
+
+        self.assertEqual(report["total"], 2)
+        self.assertEqual(report["passed"], 1)
+        self.assertEqual(report["failure_categories"], {"meaning_layer_ambiguity": 1})
+
+    def test_evaluation_classifies_low_confidence_as_misrecognition(self) -> None:
+        case = EvaluationCase(
+            "uncertain-1",
+            {"gloss": "hello", "confidence": 0.2, "timestamp": 3.0},
+            "greeting",
+        )
+
+        report = evaluate_cases([case], self.orchestrator.route)
+
+        self.assertEqual(report["failure_categories"], {"misrecognition": 1})
 
 
 if __name__ == "__main__":
