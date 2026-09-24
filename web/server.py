@@ -60,6 +60,35 @@ class AppHandler(BaseHTTPRequestHandler):
             return self.infer(parse_qs(parsed.query))
         return self.serve_static(parsed.path)
 
+    def do_POST(self):
+        if urlparse(self.path).path != "/api/infer":
+            return json_response(self, {"error": "Not found"}, 404)
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(content_length))
+            features = np.asarray(payload["features"], dtype=np.float32)
+            mask = np.asarray(payload["mask"], dtype=np.float32)
+            if features.ndim != 2 or features.shape[1] != 258:
+                raise ValueError("features must have shape (T, 258)")
+            if mask.shape != (features.shape[0], 75):
+                raise ValueError("mask must have shape (T, 75)")
+            if not np.any(mask > 0):
+                raise ValueError("mask must contain at least one detected landmark")
+            timestamp = float(payload.get("timestamp", 0.0))
+            prediction = adapter.predict(features, mask, timestamp)
+            routed = runtime.orchestrator.route(prediction)
+            avatar_clip = avatar_resolver.resolve([prediction["gloss"]])[0]
+            return json_response(
+                self,
+                {
+                    "prediction": prediction,
+                    "route": routed,
+                    "avatar": {"clip": avatar_clip, "status": "pending-assets"},
+                },
+            )
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            return json_response(self, {"error": str(error)}, 400)
+
     def infer(self, query):
         sample_id = query.get("sample_id", [""])[0]
         row = SAMPLES_BY_ID.get(sample_id)
