@@ -36,6 +36,19 @@ class LeadPipelineTests(unittest.TestCase):
         self.assertEqual(result["meaning"]["intent"], "greeting")
         self.assertIn("Hello", result["response_text"])
 
+    def test_orchestrator_uses_injected_conversation_agent(self) -> None:
+        agent = ConversationAgent(
+            response_generator=lambda meaning, turns: "Injected response"
+        )
+        orchestrator = Orchestrator(conversation_agent=agent)
+
+        result = orchestrator.route(
+            {"gloss": "hello", "confidence": 0.92, "timestamp": 1.0}
+        )
+
+        self.assertEqual(result["response_text"], "Injected response")
+        self.assertEqual(len(agent.state.turns), 1)
+
     def test_low_confidence_prediction_requests_clarification(self) -> None:
         result = self.orchestrator.route(
             {"gloss": "hello", "confidence": 0.42, "timestamp": 2.0}

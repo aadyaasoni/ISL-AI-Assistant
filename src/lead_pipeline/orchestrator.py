@@ -1,15 +1,19 @@
 from typing import Any
 
-from .conversation_agent import ConversationState
+from .conversation_agent import ConversationAgent
 from .meaning_layer import meaning_for_gloss
 
 
 class Orchestrator:
-    def __init__(self, confidence_threshold: float = 0.60) -> None:
+    def __init__(
+        self,
+        confidence_threshold: float = 0.60,
+        conversation_agent: ConversationAgent | None = None,
+    ) -> None:
         if not 0 <= confidence_threshold <= 1:
             raise ValueError("confidence_threshold must be between 0 and 1")
         self.confidence_threshold = confidence_threshold
-        self.conversation = ConversationState()
+        self.conversation_agent = conversation_agent or ConversationAgent()
 
     def route(self, prediction: dict[str, Any]) -> dict[str, Any]:
         self._validate_prediction(prediction)
@@ -36,8 +40,7 @@ class Orchestrator:
                 "timestamp": timestamp,
             }
 
-        response_text = self.conversation.response_for(meaning)
-        self.conversation.add_turn(meaning, response_text)
+        response_text = self.conversation_agent.respond(meaning)
         return {
             "status": "accepted",
             "meaning": meaning,
