@@ -168,6 +168,24 @@ result = adapter.predict(features, mask, timestamp)
 
 `features` must have shape `(T, 258)` and `mask` must have shape `(T, 75)`. `result` contains exactly `gloss`, `confidence`, and `timestamp`, matching `CONTRACT.md`. The adapter also validates the two input shapes before invoking the model.
 
+## Browser presentation layer
+
+Run the dependency-free local dashboard with:
+
+```bash
+python3 web/server.py 8000
+```
+
+Open `http://127.0.0.1:8000/` to preview the camera locally and run real `.npz` samples through the checkpoint and lead runtime. The browser camera preview is intentionally local; browser-frame landmark extraction is not yet connected to the Python preprocessing pipeline. The dashboard exposes low-confidence clarification and pending avatar fallback states instead of claiming unsupported clips are playable.
+
+Run the 24-case runtime evaluation with:
+
+```bash
+python3 scripts/run_round_trip_evaluation.py --limit 24
+```
+
+The JSON report records exact gloss matches, route outcomes, low-confidence cases, unknown-gloss cases, and errors separately.
+
 ## Validation and avatar preparation
 
 The real-sample checks and aggregate evaluation results are recorded in [`reports/real_sample_validation.md`](reports/real_sample_validation.md). The adapter test suite currently passes all six tests.

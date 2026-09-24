@@ -1,0 +1,419 @@
+{
+  "samples": 24,
+  "exact_gloss_matches": 18,
+  "exact_match_rate": 0.75,
+  "outcome_counts": {
+    "low_confidence": 13,
+    "unknown_gloss": 11
+  },
+  "cases": [
+    {
+      "sample_id": "84._small_little_MVI_9320_0189",
+      "expected_gloss": "84. small little",
+      "prediction": {
+        "gloss": "79. short",
+        "confidence": 0.41580677032470703,
+        "timestamp": 0.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "low_confidence",
+        "message": "I am not confident I understood that sign. Please repeat it.",
+        "confidence": 0.41580677032470703,
+        "timestamp": 0.0
+      },
+      "outcome": "low_confidence"
+    },
+    {
+      "sample_id": "79._short_MVI_9303_0190",
+      "expected_gloss": "79. short",
+      "prediction": {
+        "gloss": "79. short",
+        "confidence": 0.37327468395233154,
+        "timestamp": 1.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "low_confidence",
+        "message": "I am not confident I understood that sign. Please repeat it.",
+        "confidence": 0.37327468395233154,
+        "timestamp": 1.0
+      },
+      "outcome": "low_confidence"
+    },
+    {
+      "sample_id": "87._hot_MVI_9248_0191",
+      "expected_gloss": "87. hot",
+      "prediction": {
+        "gloss": "87. hot",
+        "confidence": 0.6749348044395447,
+        "timestamp": 2.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "unknown_gloss",
+        "message": "I do not recognize that sign yet. Please repeat it.",
+        "confidence": 0.6749348044395447,
+        "timestamp": 2.0
+      },
+      "outcome": "unknown_gloss"
+    },
+    {
+      "sample_id": "79._short_MVI_5191_0192",
+      "expected_gloss": "79. short",
+      "prediction": {
+        "gloss": "79. short",
+        "confidence": 0.38691702485084534,
+        "timestamp": 3.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "low_confidence",
+        "message": "I am not confident I understood that sign. Please repeat it.",
+        "confidence": 0.38691702485084534,
+        "timestamp": 3.0
+      },
+      "outcome": "low_confidence"
+    },
+    {
+      "sample_id": "2._quiet_MVI_9539_0193",
+      "expected_gloss": "2. quiet",
+      "prediction": {
+        "gloss": "2. quiet",
+        "confidence": 0.7311351895332336,
+        "timestamp": 4.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "unknown_gloss",
+        "message": "I do not recognize that sign yet. Please repeat it.",
+        "confidence": 0.7311351895332336,
+        "timestamp": 4.0
+      },
+      "outcome": "unknown_gloss"
+    },
+    {
+      "sample_id": "94._good_MVI_9430_0194",
+      "expected_gloss": "94. good",
+      "prediction": {
+        "gloss": "91. new",
+        "confidence": 0.4557267129421234,
+        "timestamp": 5.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "low_confidence",
+        "message": "I am not confident I understood that sign. Please repeat it.",
+        "confidence": 0.4557267129421234,
+        "timestamp": 5.0
+      },
+      "outcome": "low_confidence"
+    },
+    {
+      "sample_id": "84._small_little_MVI_5127_0195",
+      "expected_gloss": "84. small little",
+      "prediction": {
+        "gloss": "79. short",
+        "confidence": 0.20770640671253204,
+        "timestamp": 6.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "low_confidence",
+        "message": "I am not confident I understood that sign. Please repeat it.",
+        "confidence": 0.20770640671253204,
+        "timestamp": 6.0
+      },
+      "outcome": "low_confidence"
+    },
+    {
+      "sample_id": "3._happy_MVI_9297_0196",
+      "expected_gloss": "3. happy",
+      "prediction": {
+        "gloss": "3. happy",
+        "confidence": 0.3226235806941986,
+        "timestamp": 7.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "low_confidence",
+        "message": "I am not confident I understood that sign. Please repeat it.",
+        "confidence": 0.3226235806941986,
+        "timestamp": 7.0
+      },
+      "outcome": "low_confidence"
+    },
+    {
+      "sample_id": "87._hot_MVI_9489_0197",
+      "expected_gloss": "87. hot",
+      "prediction": {
+        "gloss": "78. long",
+        "confidence": 0.826169490814209,
+        "timestamp": 8.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "unknown_gloss",
+        "message": "I do not recognize that sign yet. Please repeat it.",
+        "confidence": 0.826169490814209,
+        "timestamp": 8.0
+      },
+      "outcome": "unknown_gloss"
+    },
+    {
+      "sample_id": "78._long_MVI_9379_0198",
+      "expected_gloss": "78. long",
+      "prediction": {
+        "gloss": "78. long",
+        "confidence": 0.8425959348678589,
+        "timestamp": 9.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "unknown_gloss",
+        "message": "I do not recognize that sign yet. Please repeat it.",
+        "confidence": 0.8425959348678589,
+        "timestamp": 9.0
+      },
+      "outcome": "unknown_gloss"
+    },
+    {
+      "sample_id": "87._hot_MVI_9487_0199",
+      "expected_gloss": "87. hot",
+      "prediction": {
+        "gloss": "79. short",
+        "confidence": 0.27305668592453003,
+        "timestamp": 10.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "low_confidence",
+        "message": "I am not confident I understood that sign. Please repeat it.",
+        "confidence": 0.27305668592453003,
+        "timestamp": 10.0
+      },
+      "outcome": "low_confidence"
+    },
+    {
+      "sample_id": "83._big_large_MVI_5283_0200",
+      "expected_gloss": "83. big large",
+      "prediction": {
+        "gloss": "83. big large",
+        "confidence": 0.654980480670929,
+        "timestamp": 11.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "unknown_gloss",
+        "message": "I do not recognize that sign yet. Please repeat it.",
+        "confidence": 0.654980480670929,
+        "timestamp": 11.0
+      },
+      "outcome": "unknown_gloss"
+    },
+    {
+      "sample_id": "1._loud_MVI_9369_0201",
+      "expected_gloss": "1. loud",
+      "prediction": {
+        "gloss": "1. loud",
+        "confidence": 0.5985172390937805,
+        "timestamp": 12.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "low_confidence",
+        "message": "I am not confident I understood that sign. Please repeat it.",
+        "confidence": 0.5985172390937805,
+        "timestamp": 12.0
+      },
+      "outcome": "low_confidence"
+    },
+    {
+      "sample_id": "87._hot_MVI_9408_0202",
+      "expected_gloss": "87. hot",
+      "prediction": {
+        "gloss": "87. hot",
+        "confidence": 0.6112286448478699,
+        "timestamp": 13.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "unknown_gloss",
+        "message": "I do not recognize that sign yet. Please repeat it.",
+        "confidence": 0.6112286448478699,
+        "timestamp": 13.0
+      },
+      "outcome": "unknown_gloss"
+    },
+    {
+      "sample_id": "79._short_MVI_9220_0203",
+      "expected_gloss": "79. short",
+      "prediction": {
+        "gloss": "79. short",
+        "confidence": 0.3220493793487549,
+        "timestamp": 14.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "low_confidence",
+        "message": "I am not confident I understood that sign. Please repeat it.",
+        "confidence": 0.3220493793487549,
+        "timestamp": 14.0
+      },
+      "outcome": "low_confidence"
+    },
+    {
+      "sample_id": "83._big_large_MVI_9475_0204",
+      "expected_gloss": "83. big large",
+      "prediction": {
+        "gloss": "83. big large",
+        "confidence": 0.6163933873176575,
+        "timestamp": 15.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "unknown_gloss",
+        "message": "I do not recognize that sign yet. Please repeat it.",
+        "confidence": 0.6163933873176575,
+        "timestamp": 15.0
+      },
+      "outcome": "unknown_gloss"
+    },
+    {
+      "sample_id": "1._loud_MVI_9289_0205",
+      "expected_gloss": "1. loud",
+      "prediction": {
+        "gloss": "1. loud",
+        "confidence": 0.5461490750312805,
+        "timestamp": 16.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "low_confidence",
+        "message": "I am not confident I understood that sign. Please repeat it.",
+        "confidence": 0.5461490750312805,
+        "timestamp": 16.0
+      },
+      "outcome": "low_confidence"
+    },
+    {
+      "sample_id": "1._loud_MVI_5258_0206",
+      "expected_gloss": "1. loud",
+      "prediction": {
+        "gloss": "1. loud",
+        "confidence": 0.6123872399330139,
+        "timestamp": 17.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "unknown_gloss",
+        "message": "I do not recognize that sign yet. Please repeat it.",
+        "confidence": 0.6123872399330139,
+        "timestamp": 17.0
+      },
+      "outcome": "unknown_gloss"
+    },
+    {
+      "sample_id": "91._new_MVI_5230_0207",
+      "expected_gloss": "91. new",
+      "prediction": {
+        "gloss": "2. quiet",
+        "confidence": 0.3401802182197571,
+        "timestamp": 18.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "low_confidence",
+        "message": "I am not confident I understood that sign. Please repeat it.",
+        "confidence": 0.3401802182197571,
+        "timestamp": 18.0
+      },
+      "outcome": "low_confidence"
+    },
+    {
+      "sample_id": "87._hot_MVI_5216_0208",
+      "expected_gloss": "87. hot",
+      "prediction": {
+        "gloss": "87. hot",
+        "confidence": 0.724854588508606,
+        "timestamp": 19.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "unknown_gloss",
+        "message": "I do not recognize that sign yet. Please repeat it.",
+        "confidence": 0.724854588508606,
+        "timestamp": 19.0
+      },
+      "outcome": "unknown_gloss"
+    },
+    {
+      "sample_id": "1._loud_MVI_9536_0209",
+      "expected_gloss": "1. loud",
+      "prediction": {
+        "gloss": "1. loud",
+        "confidence": 0.4787607192993164,
+        "timestamp": 20.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "low_confidence",
+        "message": "I am not confident I understood that sign. Please repeat it.",
+        "confidence": 0.4787607192993164,
+        "timestamp": 20.0
+      },
+      "outcome": "low_confidence"
+    },
+    {
+      "sample_id": "2._quiet_MVI_5180_0210",
+      "expected_gloss": "2. quiet",
+      "prediction": {
+        "gloss": "2. quiet",
+        "confidence": 0.6770732402801514,
+        "timestamp": 21.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "unknown_gloss",
+        "message": "I do not recognize that sign yet. Please repeat it.",
+        "confidence": 0.6770732402801514,
+        "timestamp": 21.0
+      },
+      "outcome": "unknown_gloss"
+    },
+    {
+      "sample_id": "83._big_large_MVI_5203_0211",
+      "expected_gloss": "83. big large",
+      "prediction": {
+        "gloss": "83. big large",
+        "confidence": 0.5663905739784241,
+        "timestamp": 22.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "low_confidence",
+        "message": "I am not confident I understood that sign. Please repeat it.",
+        "confidence": 0.5663905739784241,
+        "timestamp": 22.0
+      },
+      "outcome": "low_confidence"
+    },
+    {
+      "sample_id": "78._long_MVI_9219_0212",
+      "expected_gloss": "78. long",
+      "prediction": {
+        "gloss": "78. long",
+        "confidence": 0.9386491775512695,
+        "timestamp": 23.0
+      },
+      "route": {
+        "status": "clarification_required",
+        "reason": "unknown_gloss",
+        "message": "I do not recognize that sign yet. Please repeat it.",
+        "confidence": 0.9386491775512695,
+        "timestamp": 23.0
+      },
+      "outcome": "unknown_gloss"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 
 ResponseGenerator = Callable[[dict[str, Any], list[dict[str, Any]]], str]
@@ -36,8 +36,8 @@ class ConversationAgent:
 
     def __init__(
         self,
-        state: ConversationState | None = None,
-        response_generator: ResponseGenerator | None = None,
+        state: Optional[ConversationState] = None,
+        response_generator: Optional[ResponseGenerator] = None,
     ) -> None:
         self.state = state or ConversationState()
         self.response_generator = response_generator
