@@ -51,7 +51,22 @@ class AppHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/api/health":
-            return json_response(self, {"status": "ready", "labels": len(adapter.labels)})
+            return json_response(
+                self,
+                {
+                    "status": "ready",
+                    "labels": len(adapter.labels),
+                    "failure_events": len(runtime.orchestrator.failure_events),
+                },
+            )
+        if parsed.path == "/api/failures":
+            return json_response(
+                self,
+                {
+                    "count": len(runtime.orchestrator.failure_events),
+                    "events": runtime.orchestrator.failure_events,
+                },
+            )
         if parsed.path == "/api/samples":
             return json_response(
                 self,
