@@ -3,6 +3,19 @@
   "model": null,
   "animations": [],
   "supported_glosses": [],
+  "unsupported_glosses": [
+    "1. loud",
+    "2. quiet",
+    "3. happy",
+    "78. long",
+    "79. short",
+    "83. big large",
+    "84. small little",
+    "87. hot",
+    "91. new",
+    "94. good",
+    "97. dry"
+  ],
   "license": null,
   "notes": "No avatar binaries are committed until a source and redistribution license are confirmed."
 }
