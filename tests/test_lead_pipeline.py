@@ -2,6 +2,7 @@ import unittest
 
 from src.lead_pipeline import (
     ConversationAgent,
+    CommunicationPipeline,
     EvaluationCase,
     GlossClipResolver,
     Orchestrator,
@@ -21,6 +22,14 @@ class FakeRecognizer:
             "confidence": self.confidence,
             "timestamp": timestamp,
         }
+
+
+class FakeClipResolver:
+    def __init__(self, clips=None):
+        self.clips = clips or {}
+
+    def resolve(self, gloss_sequence):
+        return [self.clips[gloss] for gloss in gloss_sequence]
 
 
 class LeadPipelineTests(unittest.TestCase):
@@ -87,6 +96,28 @@ class LeadPipelineTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "clarification_required")
         self.assertEqual(result["reason"], "low_confidence")
+
+    def test_communication_pipeline_prepares_avatar_clip(self) -> None:
+        pipeline = CommunicationPipeline(
+            RecognitionRuntime(FakeRecognizer("hello", 0.91)),
+            FakeClipResolver({"hello": "hello.glb"}),
+        )
+
+        result = pipeline.process("features", "mask", 4.5)
+
+        self.assertEqual(result["avatar_status"], "ready")
+        self.assertEqual(result["avatar_clips"], ["hello.glb"])
+
+    def test_communication_pipeline_reports_pending_avatar(self) -> None:
+        pipeline = CommunicationPipeline(
+            RecognitionRuntime(FakeRecognizer("hello", 0.91)),
+            FakeClipResolver(),
+        )
+
+        result = pipeline.process("features", "mask", 4.5)
+
+        self.assertEqual(result["avatar_status"], "fallback_required")
+        self.assertEqual(result["avatar_clips"], [])
 
     def test_conversation_agent_keeps_bounded_state(self) -> None:
         agent = ConversationAgent()
