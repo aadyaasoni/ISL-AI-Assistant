@@ -43,6 +43,7 @@ The local dashboard runs with `python3 web/server.py 8000`. It uses the real che
 - Unknown meanings are logged as `unknown_gloss` and do not enter the conversation response path.
 - Avatar resolution is wired through `GlossClipResolver`, but the manifest has no licensed clips. The resolver therefore returns an explicit pending fallback token rather than a fake asset path.
 - Evaluation reports preserve per-case outcomes so model errors, low confidence, meaning gaps, and avatar mapping gaps remain distinguishable.
+- The orchestrator retains structured `failure_events` for `low_confidence` and `unknown_gloss` outcomes and can forward them through an injected `failure_logger` callback.
 
 ## Next integration boundary
 

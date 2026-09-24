@@ -66,6 +66,22 @@ class LeadPipelineTests(unittest.TestCase):
         self.assertEqual(result["status"], "clarification_required")
         self.assertEqual(result["reason"], "low_confidence")
 
+    def test_low_confidence_failure_is_logged(self) -> None:
+        logged = []
+        orchestrator = Orchestrator(failure_logger=logged.append)
+
+        orchestrator.route({"gloss": "hello", "confidence": 0.42, "timestamp": 2.0})
+
+        self.assertEqual(orchestrator.failure_events, logged)
+        self.assertEqual(logged[0]["reason"], "low_confidence")
+
+    def test_unknown_gloss_failure_is_logged(self) -> None:
+        orchestrator = Orchestrator()
+
+        orchestrator.route({"gloss": "unseen", "confidence": 0.95, "timestamp": 3.0})
+
+        self.assertEqual(orchestrator.failure_events[0]["reason"], "unknown_gloss")
+
     def test_unknown_gloss_requests_clarification(self) -> None:
         result = self.orchestrator.route(
             {"gloss": "unseen", "confidence": 0.95, "timestamp": 3.0}
