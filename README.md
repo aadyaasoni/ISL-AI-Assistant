@@ -188,6 +188,14 @@ python3 scripts/run_round_trip_evaluation.py --limit 24
 
 The JSON report records exact gloss matches, route outcomes, low-confidence cases, unknown-gloss cases, and errors separately.
 
+Capture a small reproducible demo evidence run with:
+
+```bash
+python3 scripts/run_demo_evidence.py
+```
+
+This writes `reports/demo_evidence.json` with raw predictions, route reasons, failure events, and avatar fallback status. It is an evidence artifact, not a substitute for a recorded video demo.
+
 The orchestrator also records structured `failure_events` for low-confidence and unknown-gloss routes. Pass `failure_logger=callback` to `Orchestrator` to stream each event to application logging; each event contains `reason`, `gloss`, `confidence`, and `timestamp`.
 
 ## Validation and avatar preparation
