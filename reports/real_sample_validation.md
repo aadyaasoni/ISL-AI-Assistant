@@ -65,3 +65,7 @@ There were `22` low-confidence predictions below `0.5` on the 44-sample test set
 - The avatar manifest currently maps no glosses: all 11 labels are explicitly listed as unsupported until licensed animations are added.
 - Low-confidence outputs are observable through `confidence`; no fallback behavior for unmapped glosses exists in `RecognitionAdapter` yet.
 - A browser/avatar round-trip and backup demo video remain blocked until licensed avatar assets and the presentation layer are available.
+
+## Full adapter round-trip
+
+All `44` valid test samples were passed through `RecognitionAdapter` with a supplied timestamp. The run returned `0` contract failures, loaded all `11` labels, and produced `32/44` exact gloss matches (`72.73%`). `22` outputs were below `0.5` confidence, consistent with the standalone evaluation.
