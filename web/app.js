@@ -5,6 +5,11 @@ const systemStatus = document.querySelector("#system-status");
 const sampleSelect = document.querySelector("#sample-select");
 const runSample = document.querySelector("#run-sample");
 let stream;
+let captureTimer;
+let frameCanvas;
+let frameBuffer = [];
+let frameBusy = false;
+const sequenceLength = 24;
 
 function setText(selector, value) {
   document.querySelector(selector).textContent = value;
@@ -46,6 +51,50 @@ async function checkHealth() {
   }
 }
 
+async function captureFrame() {
+  if (!stream || frameBusy || !camera.videoWidth) return;
+  frameBusy = true;
+  const context = frameCanvas.getContext("2d");
+  context.drawImage(camera, 0, 0, frameCanvas.width, frameCanvas.height);
+  try {
+    const frameResponse = await fetch("/api/frame", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        image_base64: frameCanvas.toDataURL("image/jpeg", 0.72),
+        timestamp_ms: Date.now(),
+      }),
+    });
+    if (!frameResponse.ok) throw new Error("Landmark extraction unavailable");
+    const frame = await frameResponse.json();
+    if (!frame.has_landmarks) {
+      setText("#camera-note", "No landmarks detected; move into view.");
+      return;
+    }
+    frameBuffer.push(frame);
+    setText("#camera-note", `Landmark frames: ${frameBuffer.length}/${sequenceLength}`);
+    if (frameBuffer.length >= sequenceLength) {
+      const sequence = frameBuffer.splice(0, sequenceLength);
+      const inferenceResponse = await fetch("/api/infer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          features: sequence.map((frame) => frame.features),
+          mask: sequence.map((frame) => frame.mask),
+          timestamp: Date.now() / 1000,
+        }),
+      });
+      if (!inferenceResponse.ok) throw new Error("Camera inference failed");
+      showResult(await inferenceResponse.json());
+    }
+  } catch (error) {
+    setText("#camera-note", error.message);
+    clearInterval(captureTimer);
+  } finally {
+    frameBusy = false;
+  }
+}
+
 runSample.addEventListener("click", async () => {
   runSample.disabled = true;
   runSample.textContent = "Running…";
@@ -64,8 +113,10 @@ runSample.addEventListener("click", async () => {
 cameraToggle.addEventListener("click", async () => {
   if (stream) {
     stream.getTracks().forEach((track) => track.stop());
+    clearInterval(captureTimer);
     stream = undefined;
     camera.srcObject = null;
+    frameBuffer = [];
     cameraEmpty.hidden = false;
     cameraToggle.textContent = "Enable camera";
     return;
@@ -73,8 +124,13 @@ cameraToggle.addEventListener("click", async () => {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
     camera.srcObject = stream;
+    frameCanvas = document.createElement("canvas");
+    frameCanvas.width = 640;
+    frameCanvas.height = 360;
+    frameBuffer = [];
     cameraEmpty.hidden = true;
     cameraToggle.textContent = "Stop camera";
+    captureTimer = setInterval(captureFrame, 180);
   } catch {
     setText("#camera-note", "Camera permission was not granted.");
   }

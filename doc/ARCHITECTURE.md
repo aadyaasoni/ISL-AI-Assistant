@@ -8,9 +8,11 @@ Browser camera preview
         v
 web/index.html + app.js
         |
-        +--> POST /api/infer {features, mask, timestamp}
+        +--> POST /api/frame {image_base64}
+        |       (MediaPipe hand/pose)
         |                              |
-        +--> /api/infer?sample_id=...  v
+        +--> POST /api/infer {features, mask, timestamp}
+        |       or /api/infer?sample_id  v
                                RecognitionAdapter
                                              |
                                              v
@@ -34,8 +36,9 @@ The local dashboard runs with `python3 web/server.py 8000`. It uses the real che
 ## Boundaries
 
 - Landmark preprocessing remains Python-side and accepts `(T, 258)` features plus `(T, 75)` masks.
-- The browser camera currently provides a local preview only. A future camera bridge must convert browser frames to the existing landmark schema before calling the recognizer.
-- The server accepts model-ready browser landmarks through `POST /api/infer`; it validates the adapter shapes before running inference. A future camera bridge still must produce those arrays from browser frames.
+- `venv/bin/python web/server.py 8000` runs the camera-capable server with the repository's MediaPipe and OpenCV dependencies.
+- `POST /api/frame` converts one browser JPEG into the existing normalized 258-feature and 75-mask schema using the same extractor functions as dataset preprocessing, and marks frames without detections as `has_landmarks: false`.
+- The browser ignores landmark-free frames, accumulates 24 valid frame responses, and sends them to `POST /api/infer`, which validates the adapter shapes before running inference.
 - Confidence below the orchestrator threshold produces a clarification response.
 - Unknown meanings are logged as `unknown_gloss` and do not enter the conversation response path.
 - Avatar resolution is wired through `GlossClipResolver`, but the manifest has no licensed clips. The resolver therefore returns an explicit pending fallback token rather than a fake asset path.
