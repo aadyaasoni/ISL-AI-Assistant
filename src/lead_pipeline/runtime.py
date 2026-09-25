@@ -1,4 +1,4 @@
-from typing import Any, Protocol
+from typing import Any, Optional, Protocol
 
 from .orchestrator import Orchestrator
 
@@ -19,7 +19,7 @@ class RecognitionRuntime:
     def __init__(
         self,
         recognizer: Recognizer,
-        orchestrator: Orchestrator | None = None,
+        orchestrator: Optional[Orchestrator] = None,
     ) -> None:
         self.recognizer = recognizer
         self.orchestrator = orchestrator or Orchestrator()

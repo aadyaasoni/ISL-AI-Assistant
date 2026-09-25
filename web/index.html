@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ISL Communication Assistant</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">ISL / LIVE BRIDGE</p>
+        <h1>Communication assistant</h1>
+      </div>
+      <div class="status-pill"><span class="status-dot"></span><span id="system-status">Connecting</span></div>
+    </header>
+
+    <section class="hero-grid">
+      <article class="camera-panel panel">
+        <div class="panel-heading"><div><p class="eyebrow">Input</p><h2>Camera preview</h2></div><span class="signal">LOCAL</span></div>
+        <div class="camera-frame">
+          <video id="camera" autoplay muted playsinline></video>
+          <div id="camera-empty" class="camera-empty"><span class="camera-mark">◌</span><strong>Camera is ready to connect</strong><span>Preview stays in your browser.</span></div>
+          <div class="scanline"></div>
+        </div>
+        <div class="camera-actions"><button id="camera-toggle" class="button button-primary">Enable camera</button><span id="camera-note">No frames leave this page.</span></div>
+      </article>
+
+      <article class="result-panel panel">
+        <div class="panel-heading"><div><p class="eyebrow">Recognition</p><h2>Latest meaning</h2></div><span id="confidence-badge" class="confidence-badge">Waiting</span></div>
+        <div class="gloss-block"><span class="label">Gloss</span><strong id="gloss">—</strong><div class="confidence-track"><span id="confidence-fill"></span></div><div class="confidence-row"><span>Confidence</span><strong id="confidence">—</strong></div></div>
+        <div class="response-block"><span class="label">Conversation response</span><p id="response">Choose a real landmark sample to run the checkpoint.</p></div>
+        <div class="meta-grid"><div><span class="label">Timestamp</span><strong id="timestamp">—</strong></div><div><span class="label">Avatar clip</span><strong id="avatar-status">Pending assets</strong></div></div>
+      </article>
+    </section>
+
+    <section class="control-strip panel">
+      <div><p class="eyebrow">Runtime probe</p><h2>Run a real sample</h2><p class="muted">Uses the merged BiLSTM checkpoint and the production routing contract.</p></div>
+      <div class="probe-controls"><select id="sample-select" aria-label="Choose a real landmark sample"></select><button id="run-sample" class="button button-accent">Run inference</button></div>
+    </section>
+
+    <section class="footer-grid">
+      <article class="note"><span class="note-index">01</span><div><strong>Recognition runtime</strong><p>Camera preview is live. Landmark extraction remains the next browser-to-model handoff.</p></div></article>
+      <article class="note"><span class="note-index">02</span><div><strong>Avatar readiness</strong><p>No licensed model or sign clips are committed. Unsupported glosses stay explicit.</p></div></article>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

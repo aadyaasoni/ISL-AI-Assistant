@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from .conversation_agent import ConversationAgent
 from .meaning_layer import meaning_for_gloss
@@ -8,7 +8,7 @@ class Orchestrator:
     def __init__(
         self,
         confidence_threshold: float = 0.60,
-        conversation_agent: ConversationAgent | None = None,
+        conversation_agent: Optional[ConversationAgent] = None,
     ) -> None:
         if not 0 <= confidence_threshold <= 1:
             raise ValueError("confidence_threshold must be between 0 and 1")

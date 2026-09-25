@@ -1,5 +1,6 @@
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
+from typing import Optional
 
 
 ClipLoader = Callable[[str], str]
@@ -11,7 +12,7 @@ class GlossClipResolver:
 
     mapping: Mapping[str, str]
     clip_loader: ClipLoader
-    fallback_clip: str | None = None
+    fallback_clip: Optional[str] = None
     _cache: dict[str, str] = field(default_factory=dict, init=False)
 
     def resolve(self, gloss_sequence: Sequence[str]) -> list[str]:
