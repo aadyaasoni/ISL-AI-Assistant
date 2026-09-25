@@ -178,6 +178,8 @@ python3 web/server.py 8000
 
 Open `http://127.0.0.1:8000/` to preview the camera locally and run real `.npz` samples through the checkpoint and lead runtime. The browser camera preview is intentionally local; browser-frame landmark extraction is not yet connected to the Python preprocessing pipeline. The dashboard exposes low-confidence clarification and pending avatar fallback states instead of claiming unsupported clips are playable.
 
+An extractor can submit model-ready browser landmarks to `POST /api/infer` as JSON with `features` shaped `(T, 258)`, `mask` shaped `(T, 75)`, and an optional numeric `timestamp`. The endpoint returns the recognition contract, orchestrator route, and avatar resolver status. Invalid shapes are rejected with HTTP 400.
+
 Run the 24-case runtime evaluation with:
 
 ```bash

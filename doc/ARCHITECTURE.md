@@ -8,7 +8,10 @@ Browser camera preview
         v
 web/index.html + app.js
         |
-        +--> /api/infer?sample_id=... --> RecognitionAdapter
+        +--> POST /api/infer {features, mask, timestamp}
+        |                              |
+        +--> /api/infer?sample_id=...  v
+                               RecognitionAdapter
                                              |
                                              v
                                       RecognitionRuntime
@@ -32,6 +35,7 @@ The local dashboard runs with `python3 web/server.py 8000`. It uses the real che
 
 - Landmark preprocessing remains Python-side and accepts `(T, 258)` features plus `(T, 75)` masks.
 - The browser camera currently provides a local preview only. A future camera bridge must convert browser frames to the existing landmark schema before calling the recognizer.
+- The server accepts model-ready browser landmarks through `POST /api/infer`; it validates the adapter shapes before running inference. A future camera bridge still must produce those arrays from browser frames.
 - Confidence below the orchestrator threshold produces a clarification response.
 - Unknown meanings are logged as `unknown_gloss` and do not enter the conversation response path.
 - Avatar resolution is wired through `GlossClipResolver`, but the manifest has no licensed clips. The resolver therefore returns an explicit pending fallback token rather than a fake asset path.
