@@ -188,6 +188,8 @@ python3 scripts/run_round_trip_evaluation.py --limit 24
 
 The JSON report records exact gloss matches, route outcomes, low-confidence cases, unknown-gloss cases, and errors separately.
 
+The orchestrator also records structured `failure_events` for low-confidence and unknown-gloss routes. Pass `failure_logger=callback` to `Orchestrator` to stream each event to application logging; each event contains `reason`, `gloss`, `confidence`, and `timestamp`.
+
 ## Validation and avatar preparation
 
 The real-sample checks and aggregate evaluation results are recorded in [`reports/real_sample_validation.md`](reports/real_sample_validation.md). The adapter test suite currently passes all six tests.
