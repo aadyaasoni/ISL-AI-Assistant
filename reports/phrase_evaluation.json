@@ -1,0 +1,1038 @@
+{
+  "total": 25,
+  "passed": 0,
+  "failed": 25,
+  "pass_rate": 0.0,
+  "failure_categories": {
+    "avatar_mapping_gap": 23,
+    "misrecognition": 1,
+    "meaning_ambiguity": 1
+  },
+  "cases": [
+    {
+      "case_id": "single-loud",
+      "gloss_sequence": [
+        "1. loud"
+      ],
+      "expected_meaning": [
+        "loud"
+      ],
+      "actual_meaning": [
+        "loud"
+      ],
+      "expected_response": "I understood the property: loud.",
+      "actual_response": "I understood the property: loud.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "loud"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "1. loud"
+          },
+          "response_text": "I understood the property: loud.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        }
+      ]
+    },
+    {
+      "case_id": "single-quiet",
+      "gloss_sequence": [
+        "2. quiet"
+      ],
+      "expected_meaning": [
+        "quiet"
+      ],
+      "actual_meaning": [
+        "quiet"
+      ],
+      "expected_response": "I understood the property: quiet.",
+      "actual_response": "I understood the property: quiet.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "quiet"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "2. quiet"
+          },
+          "response_text": "I understood the property: quiet.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        }
+      ]
+    },
+    {
+      "case_id": "single-happy",
+      "gloss_sequence": [
+        "3. happy"
+      ],
+      "expected_meaning": [
+        "happy"
+      ],
+      "actual_meaning": [
+        "happy"
+      ],
+      "expected_response": "I understood the property: happy.",
+      "actual_response": "I understood the property: happy.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "happy"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "3. happy"
+          },
+          "response_text": "I understood the property: happy.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        }
+      ]
+    },
+    {
+      "case_id": "single-long",
+      "gloss_sequence": [
+        "78. long"
+      ],
+      "expected_meaning": [
+        "long"
+      ],
+      "actual_meaning": [
+        "long"
+      ],
+      "expected_response": "I understood the property: long.",
+      "actual_response": "I understood the property: long.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "long"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "78. long"
+          },
+          "response_text": "I understood the property: long.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        }
+      ]
+    },
+    {
+      "case_id": "single-short",
+      "gloss_sequence": [
+        "79. short"
+      ],
+      "expected_meaning": [
+        "short"
+      ],
+      "actual_meaning": [
+        "short"
+      ],
+      "expected_response": "I understood the property: short.",
+      "actual_response": "I understood the property: short.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "short"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "79. short"
+          },
+          "response_text": "I understood the property: short.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        }
+      ]
+    },
+    {
+      "case_id": "single-large",
+      "gloss_sequence": [
+        "83. big large"
+      ],
+      "expected_meaning": [
+        "large"
+      ],
+      "actual_meaning": [
+        "large"
+      ],
+      "expected_response": "I understood the property: large.",
+      "actual_response": "I understood the property: large.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "large"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "83. big large"
+          },
+          "response_text": "I understood the property: large.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        }
+      ]
+    },
+    {
+      "case_id": "single-small",
+      "gloss_sequence": [
+        "84. small little"
+      ],
+      "expected_meaning": [
+        "small"
+      ],
+      "actual_meaning": [
+        "small"
+      ],
+      "expected_response": "I understood the property: small.",
+      "actual_response": "I understood the property: small.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "small"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "84. small little"
+          },
+          "response_text": "I understood the property: small.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        }
+      ]
+    },
+    {
+      "case_id": "single-hot",
+      "gloss_sequence": [
+        "87. hot"
+      ],
+      "expected_meaning": [
+        "hot"
+      ],
+      "actual_meaning": [
+        "hot"
+      ],
+      "expected_response": "I understood the property: hot.",
+      "actual_response": "I understood the property: hot.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "hot"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "87. hot"
+          },
+          "response_text": "I understood the property: hot.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        }
+      ]
+    },
+    {
+      "case_id": "single-new",
+      "gloss_sequence": [
+        "91. new"
+      ],
+      "expected_meaning": [
+        "new"
+      ],
+      "actual_meaning": [
+        "new"
+      ],
+      "expected_response": "I understood the property: new.",
+      "actual_response": "I understood the property: new.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "new"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "91. new"
+          },
+          "response_text": "I understood the property: new.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        }
+      ]
+    },
+    {
+      "case_id": "single-good",
+      "gloss_sequence": [
+        "94. good"
+      ],
+      "expected_meaning": [
+        "good"
+      ],
+      "actual_meaning": [
+        "good"
+      ],
+      "expected_response": "I understood the property: good.",
+      "actual_response": "I understood the property: good.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "good"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "94. good"
+          },
+          "response_text": "I understood the property: good.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        }
+      ]
+    },
+    {
+      "case_id": "single-dry",
+      "gloss_sequence": [
+        "97. dry"
+      ],
+      "expected_meaning": [
+        "dry"
+      ],
+      "actual_meaning": [
+        "dry"
+      ],
+      "expected_response": "I understood the property: dry.",
+      "actual_response": "I understood the property: dry.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "dry"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "97. dry"
+          },
+          "response_text": "I understood the property: dry.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        }
+      ]
+    },
+    {
+      "case_id": "pair-loud-quiet",
+      "gloss_sequence": [
+        "1. loud",
+        "2. quiet"
+      ],
+      "expected_meaning": [
+        "loud",
+        "quiet"
+      ],
+      "actual_meaning": [
+        "loud",
+        "quiet"
+      ],
+      "expected_response": "I understood the property: loud. I understood the property: quiet.",
+      "actual_response": "I understood the property: loud. I understood the property: quiet.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "loud"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "1. loud"
+          },
+          "response_text": "I understood the property: loud.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        },
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "quiet"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "2. quiet"
+          },
+          "response_text": "I understood the property: quiet.",
+          "confidence": 0.95,
+          "timestamp": 1.0
+        }
+      ]
+    },
+    {
+      "case_id": "pair-happy-good",
+      "gloss_sequence": [
+        "3. happy",
+        "94. good"
+      ],
+      "expected_meaning": [
+        "happy",
+        "good"
+      ],
+      "actual_meaning": [
+        "happy",
+        "good"
+      ],
+      "expected_response": "I understood the property: happy. I understood the property: good.",
+      "actual_response": "I understood the property: happy. I understood the property: good.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "happy"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "3. happy"
+          },
+          "response_text": "I understood the property: happy.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        },
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "good"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "94. good"
+          },
+          "response_text": "I understood the property: good.",
+          "confidence": 0.95,
+          "timestamp": 1.0
+        }
+      ]
+    },
+    {
+      "case_id": "pair-long-short",
+      "gloss_sequence": [
+        "78. long",
+        "79. short"
+      ],
+      "expected_meaning": [
+        "long",
+        "short"
+      ],
+      "actual_meaning": [
+        "long",
+        "short"
+      ],
+      "expected_response": "I understood the property: long. I understood the property: short.",
+      "actual_response": "I understood the property: long. I understood the property: short.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "long"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "78. long"
+          },
+          "response_text": "I understood the property: long.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        },
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "short"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "79. short"
+          },
+          "response_text": "I understood the property: short.",
+          "confidence": 0.95,
+          "timestamp": 1.0
+        }
+      ]
+    },
+    {
+      "case_id": "pair-large-small",
+      "gloss_sequence": [
+        "83. big large",
+        "84. small little"
+      ],
+      "expected_meaning": [
+        "large",
+        "small"
+      ],
+      "actual_meaning": [
+        "large",
+        "small"
+      ],
+      "expected_response": "I understood the property: large. I understood the property: small.",
+      "actual_response": "I understood the property: large. I understood the property: small.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "large"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "83. big large"
+          },
+          "response_text": "I understood the property: large.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        },
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "small"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "84. small little"
+          },
+          "response_text": "I understood the property: small.",
+          "confidence": 0.95,
+          "timestamp": 1.0
+        }
+      ]
+    },
+    {
+      "case_id": "pair-hot-dry",
+      "gloss_sequence": [
+        "87. hot",
+        "97. dry"
+      ],
+      "expected_meaning": [
+        "hot",
+        "dry"
+      ],
+      "actual_meaning": [
+        "hot",
+        "dry"
+      ],
+      "expected_response": "I understood the property: hot. I understood the property: dry.",
+      "actual_response": "I understood the property: hot. I understood the property: dry.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "hot"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "87. hot"
+          },
+          "response_text": "I understood the property: hot.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        },
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "dry"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "97. dry"
+          },
+          "response_text": "I understood the property: dry.",
+          "confidence": 0.95,
+          "timestamp": 1.0
+        }
+      ]
+    },
+    {
+      "case_id": "pair-new-good",
+      "gloss_sequence": [
+        "91. new",
+        "94. good"
+      ],
+      "expected_meaning": [
+        "new",
+        "good"
+      ],
+      "actual_meaning": [
+        "new",
+        "good"
+      ],
+      "expected_response": "I understood the property: new. I understood the property: good.",
+      "actual_response": "I understood the property: new. I understood the property: good.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "new"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "91. new"
+          },
+          "response_text": "I understood the property: new.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        },
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "good"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "94. good"
+          },
+          "response_text": "I understood the property: good.",
+          "confidence": 0.95,
+          "timestamp": 1.0
+        }
+      ]
+    },
+    {
+      "case_id": "pair-quiet-happy",
+      "gloss_sequence": [
+        "2. quiet",
+        "3. happy"
+      ],
+      "expected_meaning": [
+        "quiet",
+        "happy"
+      ],
+      "actual_meaning": [
+        "quiet",
+        "happy"
+      ],
+      "expected_response": "I understood the property: quiet. I understood the property: happy.",
+      "actual_response": "I understood the property: quiet. I understood the property: happy.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "quiet"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "2. quiet"
+          },
+          "response_text": "I understood the property: quiet.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        },
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "happy"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "3. happy"
+          },
+          "response_text": "I understood the property: happy.",
+          "confidence": 0.95,
+          "timestamp": 1.0
+        }
+      ]
+    },
+    {
+      "case_id": "pair-short-large",
+      "gloss_sequence": [
+        "79. short",
+        "83. big large"
+      ],
+      "expected_meaning": [
+        "short",
+        "large"
+      ],
+      "actual_meaning": [
+        "short",
+        "large"
+      ],
+      "expected_response": "I understood the property: short. I understood the property: large.",
+      "actual_response": "I understood the property: short. I understood the property: large.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "short"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "79. short"
+          },
+          "response_text": "I understood the property: short.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        },
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "large"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "83. big large"
+          },
+          "response_text": "I understood the property: large.",
+          "confidence": 0.95,
+          "timestamp": 1.0
+        }
+      ]
+    },
+    {
+      "case_id": "pair-small-new",
+      "gloss_sequence": [
+        "84. small little",
+        "91. new"
+      ],
+      "expected_meaning": [
+        "small",
+        "new"
+      ],
+      "actual_meaning": [
+        "small",
+        "new"
+      ],
+      "expected_response": "I understood the property: small. I understood the property: new.",
+      "actual_response": "I understood the property: small. I understood the property: new.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "small"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "84. small little"
+          },
+          "response_text": "I understood the property: small.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        },
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "new"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "91. new"
+          },
+          "response_text": "I understood the property: new.",
+          "confidence": 0.95,
+          "timestamp": 1.0
+        }
+      ]
+    },
+    {
+      "case_id": "pair-dry-hot",
+      "gloss_sequence": [
+        "97. dry",
+        "87. hot"
+      ],
+      "expected_meaning": [
+        "dry",
+        "hot"
+      ],
+      "actual_meaning": [
+        "dry",
+        "hot"
+      ],
+      "expected_response": "I understood the property: dry. I understood the property: hot.",
+      "actual_response": "I understood the property: dry. I understood the property: hot.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "dry"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "97. dry"
+          },
+          "response_text": "I understood the property: dry.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        },
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "hot"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "87. hot"
+          },
+          "response_text": "I understood the property: hot.",
+          "confidence": 0.95,
+          "timestamp": 1.0
+        }
+      ]
+    },
+    {
+      "case_id": "pair-good-loud",
+      "gloss_sequence": [
+        "94. good",
+        "1. loud"
+      ],
+      "expected_meaning": [
+        "good",
+        "loud"
+      ],
+      "actual_meaning": [
+        "good",
+        "loud"
+      ],
+      "expected_response": "I understood the property: good. I understood the property: loud.",
+      "actual_response": "I understood the property: good. I understood the property: loud.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "good"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "94. good"
+          },
+          "response_text": "I understood the property: good.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        },
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "loud"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "1. loud"
+          },
+          "response_text": "I understood the property: loud.",
+          "confidence": 0.95,
+          "timestamp": 1.0
+        }
+      ]
+    },
+    {
+      "case_id": "low-confidence-loud",
+      "gloss_sequence": [
+        "1. loud"
+      ],
+      "expected_meaning": [
+        "loud"
+      ],
+      "actual_meaning": [
+        "unmapped"
+      ],
+      "expected_response": "I understood the property: loud.",
+      "actual_response": "I am not confident I understood that sign. Please repeat it.",
+      "passed": false,
+      "failure_category": "misrecognition",
+      "routes": [
+        {
+          "status": "clarification_required",
+          "reason": "low_confidence",
+          "message": "I am not confident I understood that sign. Please repeat it.",
+          "confidence": 0.2,
+          "timestamp": 0.0
+        }
+      ]
+    },
+    {
+      "case_id": "unmapped-gloss",
+      "gloss_sequence": [
+        "unseen gloss"
+      ],
+      "expected_meaning": [
+        "unmapped"
+      ],
+      "actual_meaning": [
+        "unmapped"
+      ],
+      "expected_response": "I do not recognize that sign yet. Please repeat it.",
+      "actual_response": "I do not recognize that sign yet. Please repeat it.",
+      "passed": false,
+      "failure_category": "meaning_ambiguity",
+      "routes": [
+        {
+          "status": "clarification_required",
+          "reason": "unknown_gloss",
+          "message": "I do not recognize that sign yet. Please repeat it.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        }
+      ]
+    },
+    {
+      "case_id": "pair-long-new",
+      "gloss_sequence": [
+        "78. long",
+        "91. new"
+      ],
+      "expected_meaning": [
+        "long",
+        "new"
+      ],
+      "actual_meaning": [
+        "long",
+        "new"
+      ],
+      "expected_response": "I understood the property: long. I understood the property: new.",
+      "actual_response": "I understood the property: long. I understood the property: new.",
+      "passed": false,
+      "failure_category": "avatar_mapping_gap",
+      "routes": [
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "long"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "78. long"
+          },
+          "response_text": "I understood the property: long.",
+          "confidence": 0.95,
+          "timestamp": 0.0
+        },
+        {
+          "status": "accepted",
+          "meaning": {
+            "intent": "describe_property",
+            "entities": {},
+            "slots": {
+              "property": "new"
+            },
+            "mapping_status": "mapped",
+            "source_gloss": "91. new"
+          },
+          "response_text": "I understood the property: new.",
+          "confidence": 0.95,
+          "timestamp": 1.0
+        }
+      ]
+    }
+  ]
+}

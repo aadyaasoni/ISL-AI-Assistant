@@ -188,6 +188,14 @@ python3 scripts/run_round_trip_evaluation.py --limit 24
 
 The JSON report records exact gloss matches, route outcomes, low-confidence cases, unknown-gloss cases, and errors separately.
 
+Run the separate 25-case phrase meaning/response/avatar evaluation with:
+
+```bash
+python -m src.lead_pipeline.phrase_evaluation
+```
+
+This writes `reports/phrase_evaluation.json`. Missing avatar clips are reported as `avatar_mapping_gap`; no assets are assumed to be available.
+
 Capture a small reproducible demo evidence run with:
 
 ```bash
