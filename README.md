@@ -204,7 +204,7 @@ python3 scripts/run_demo_evidence.py
 
 This writes `reports/demo_evidence.json` with raw predictions, route reasons, failure events, and avatar fallback status. It is an evidence artifact, not a substitute for a recorded video demo.
 
-The orchestrator also records structured `failure_events` for low-confidence and unknown-gloss routes. Pass `failure_logger=callback` to `Orchestrator` to stream each event to application logging; each event contains `reason`, `gloss`, `confidence`, and `timestamp`.
+The orchestrator appends structured low-confidence and unknown-gloss events to `reports/failure_events.jsonl` by default. Configure the relative path with `Orchestrator(config=OrchestratorConfig(failure_log_path=Path("...")))`; pass `failure_logger=callback` to also stream events to application logging. Each event contains `reason`, `gloss`, `confidence`, and `timestamp`.
 
 ## Validation and avatar preparation
 

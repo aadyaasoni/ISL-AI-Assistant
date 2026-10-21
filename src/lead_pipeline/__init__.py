@@ -1,5 +1,6 @@
 from .avatar import GlossClipResolver
 from .conversation_agent import ConversationAgent, ConversationState
+from .config import OrchestratorConfig
 from .evaluation import EvaluationCase, evaluate_cases
 from .meaning_layer import meaning_for_gloss
 from .orchestrator import Orchestrator
@@ -13,6 +14,7 @@ __all__ = [
 	"EvaluationCase",
 	"GlossClipResolver",
 	"Orchestrator",
+	"OrchestratorConfig",
 	"RecognitionRuntime",
 	"evaluate_cases",
 	"meaning_for_gloss",

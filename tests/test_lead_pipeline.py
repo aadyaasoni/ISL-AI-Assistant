@@ -1,4 +1,7 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from src.lead_pipeline import (
     ConversationAgent,
@@ -6,6 +9,7 @@ from src.lead_pipeline import (
     EvaluationCase,
     GlossClipResolver,
     Orchestrator,
+    OrchestratorConfig,
     RecognitionRuntime,
     evaluate_cases,
     meaning_for_gloss,
@@ -35,7 +39,17 @@ class FakeClipResolver:
 
 class LeadPipelineTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.orchestrator = Orchestrator()
+        self.orchestrator = self.make_orchestrator()
+
+    def make_orchestrator(self, **kwargs) -> Orchestrator:
+        directory = tempfile.TemporaryDirectory(dir=Path.cwd())
+        self.addCleanup(directory.cleanup)
+        relative_path = Path(directory.name).relative_to(Path.cwd()) / "events.jsonl"
+        config = kwargs.pop(
+            "config",
+            OrchestratorConfig(failure_log_path=relative_path),
+        )
+        return Orchestrator(config=config, **kwargs)
 
     def test_high_confidence_prediction_reaches_response(self) -> None:
         result = self.orchestrator.route(
@@ -89,7 +103,7 @@ class LeadPipelineTests(unittest.TestCase):
         agent = ConversationAgent(
             response_generator=lambda meaning, turns: "Injected response"
         )
-        orchestrator = Orchestrator(conversation_agent=agent)
+        orchestrator = self.make_orchestrator(conversation_agent=agent)
 
         result = orchestrator.route(
             {"gloss": "hello", "confidence": 0.92, "timestamp": 1.0}
@@ -108,15 +122,52 @@ class LeadPipelineTests(unittest.TestCase):
 
     def test_low_confidence_failure_is_logged(self) -> None:
         logged = []
-        orchestrator = Orchestrator(failure_logger=logged.append)
+        orchestrator = self.make_orchestrator(failure_logger=logged.append)
 
         orchestrator.route({"gloss": "hello", "confidence": 0.42, "timestamp": 2.0})
 
         self.assertEqual(orchestrator.failure_events, logged)
         self.assertEqual(logged[0]["reason"], "low_confidence")
 
+    def test_failures_append_to_configured_jsonl_and_keep_callback(self) -> None:
+        callbacks = []
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:
+            relative_path = Path(directory).relative_to(Path.cwd()) / "events.jsonl"
+            config = OrchestratorConfig(failure_log_path=relative_path)
+            orchestrator = Orchestrator(
+                failure_logger=callbacks.append,
+                config=config,
+            )
+
+            orchestrator.route(
+                {"gloss": "hello", "confidence": 0.42, "timestamp": 2.0}
+            )
+            orchestrator.route(
+                {"gloss": "unseen", "confidence": 0.95, "timestamp": 3.0}
+            )
+            Orchestrator(config=config).route(
+                {"gloss": "unseen", "confidence": 0.95, "timestamp": 4.0}
+            )
+
+            events = [
+                json.loads(line)
+                for line in (Path(directory) / "events.jsonl")
+                .read_text(encoding="utf-8")
+                .splitlines()
+            ]
+
+        self.assertEqual(len(events), 3)
+        self.assertEqual(events[0]["reason"], "low_confidence")
+        self.assertEqual(events[1]["reason"], "unknown_gloss")
+        self.assertEqual(events[2]["reason"], "unknown_gloss")
+        self.assertEqual(callbacks, events[:2])
+
+    def test_failure_log_config_rejects_absolute_paths(self) -> None:
+        with self.assertRaisesRegex(ValueError, "must be relative"):
+            OrchestratorConfig(failure_log_path=Path.cwd() / "events.jsonl")
+
     def test_unknown_gloss_failure_is_logged(self) -> None:
-        orchestrator = Orchestrator()
+        orchestrator = self.make_orchestrator()
 
         orchestrator.route({"gloss": "unseen", "confidence": 0.95, "timestamp": 3.0})
 

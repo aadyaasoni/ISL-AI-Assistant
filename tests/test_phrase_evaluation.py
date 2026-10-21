@@ -1,6 +1,8 @@
+import tempfile
 import unittest
+from pathlib import Path
 
-from src.lead_pipeline import Orchestrator
+from src.lead_pipeline import Orchestrator, OrchestratorConfig
 from src.lead_pipeline.avatar import GlossClipResolver
 from src.lead_pipeline.phrase_evaluation import (
     PHRASE_EVALUATION_CASES,
@@ -10,6 +12,14 @@ from src.lead_pipeline.phrase_evaluation import (
 
 
 class PhraseEvaluationTests(unittest.TestCase):
+    def make_orchestrator(self) -> Orchestrator:
+        directory = tempfile.TemporaryDirectory(dir=Path.cwd())
+        self.addCleanup(directory.cleanup)
+        relative_path = Path(directory.name).relative_to(Path.cwd()) / "events.jsonl"
+        return Orchestrator(
+            config=OrchestratorConfig(failure_log_path=relative_path)
+        )
+
     def test_phrase_set_contains_25_cases_with_expected_outputs(self) -> None:
         self.assertEqual(len(PHRASE_EVALUATION_CASES), 25)
         self.assertTrue(
@@ -45,7 +55,7 @@ class PhraseEvaluationTests(unittest.TestCase):
         ]
         resolver = GlossClipResolver({}, lambda clip_path: clip_path)
 
-        report = evaluate_phrase_cases(cases, Orchestrator(), resolver)
+        report = evaluate_phrase_cases(cases, self.make_orchestrator(), resolver)
 
         self.assertEqual(report["total"], 3)
         self.assertEqual(report["failed"], 3)
@@ -69,7 +79,7 @@ class PhraseEvaluationTests(unittest.TestCase):
         resolver = GlossClipResolver({}, lambda clip_path: clip_path)
 
         with self.assertRaisesRegex(ValueError, "confidence count"):
-            evaluate_phrase_cases([case], Orchestrator(), resolver)
+            evaluate_phrase_cases([case], self.make_orchestrator(), resolver)
 
     def test_complete_phrase_round_trip_passes_when_clip_is_mapped(self) -> None:
         case = PhraseEvaluationCase(
@@ -83,7 +93,7 @@ class PhraseEvaluationTests(unittest.TestCase):
             lambda clip_path: clip_path,
         )
 
-        report = evaluate_phrase_cases([case], Orchestrator(), resolver)
+        report = evaluate_phrase_cases([case], self.make_orchestrator(), resolver)
 
         self.assertEqual(report["passed"], 1)
         self.assertTrue(report["cases"][0]["passed"])
