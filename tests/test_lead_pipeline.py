@@ -8,6 +8,7 @@ from src.lead_pipeline import (
     Orchestrator,
     RecognitionRuntime,
     evaluate_cases,
+    meaning_for_gloss,
 )
 
 
@@ -44,6 +45,45 @@ class LeadPipelineTests(unittest.TestCase):
         self.assertEqual(result["status"], "accepted")
         self.assertEqual(result["meaning"]["intent"], "greeting")
         self.assertIn("Hello", result["response_text"])
+
+    def test_meaning_for_loud_gloss(self) -> None:
+        self.assertEqual(meaning_for_gloss("1. loud")["slots"]["property"], "loud")
+
+    def test_meaning_for_quiet_gloss(self) -> None:
+        self.assertEqual(meaning_for_gloss("2. quiet")["slots"]["property"], "quiet")
+
+    def test_meaning_for_happy_gloss(self) -> None:
+        self.assertEqual(meaning_for_gloss("3. happy")["slots"]["property"], "happy")
+
+    def test_meaning_for_long_gloss(self) -> None:
+        self.assertEqual(meaning_for_gloss("78. long")["slots"]["property"], "long")
+
+    def test_meaning_for_short_gloss(self) -> None:
+        self.assertEqual(meaning_for_gloss("79. short")["slots"]["property"], "short")
+
+    def test_meaning_for_big_large_gloss(self) -> None:
+        self.assertEqual(meaning_for_gloss("83. big large")["slots"]["property"], "large")
+
+    def test_meaning_for_small_little_gloss(self) -> None:
+        self.assertEqual(meaning_for_gloss("84. small little")["slots"]["property"], "small")
+
+    def test_meaning_for_hot_gloss(self) -> None:
+        self.assertEqual(meaning_for_gloss("87. hot")["slots"]["property"], "hot")
+
+    def test_meaning_for_new_gloss(self) -> None:
+        self.assertEqual(meaning_for_gloss("91. new")["slots"]["property"], "new")
+
+    def test_meaning_for_good_gloss(self) -> None:
+        self.assertEqual(meaning_for_gloss("94. good")["slots"]["property"], "good")
+
+    def test_meaning_for_dry_gloss(self) -> None:
+        self.assertEqual(meaning_for_gloss("97. dry")["slots"]["property"], "dry")
+
+    def test_unknown_gloss_is_explicitly_unmapped(self) -> None:
+        meaning = meaning_for_gloss("unseen")
+
+        self.assertEqual(meaning["intent"], "unknown")
+        self.assertEqual(meaning["mapping_status"], "unmapped")
 
     def test_orchestrator_uses_injected_conversation_agent(self) -> None:
         agent = ConversationAgent(
