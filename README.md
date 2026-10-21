@@ -196,6 +196,14 @@ The real-sample checks and aggregate evaluation results are recorded in [`report
 
 Avatar integration requirements and the current asset status are documented in [`avatar/README.md`](avatar/README.md), [`avatar/asset_manifest.json`](avatar/asset_manifest.json), and [`avatar/ATTRIBUTION.md`](avatar/ATTRIBUTION.md). No avatar binaries are included until their source and redistribution license are confirmed.
 
+Validate the current asset state with:
+
+```bash
+python3 scripts/validate_avatar_assets.py
+```
+
+The validator accepts the documented `pending-assets` state and requires model files, animation paths, and license metadata before a manifest can be marked `ready`.
+
 ## Scope and limitations
 
 This is a documented landmark baseline, not a novel preprocessing method. It is suitable for the first recognition experiment. Later experiments can compare face/non-manual features, alternate normalization, temporal resampling, augmentation, and signer-aware splits when signer information becomes available.
