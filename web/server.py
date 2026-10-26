@@ -24,6 +24,7 @@ from src.lead_pipeline import (
     Orchestrator,
     OrchestratorConfig,
     RecognitionRuntime,
+    text_to_sign,
 )
 from src.lead_pipeline.failure_log import read_failure_events
 
@@ -135,6 +136,8 @@ class AppHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/api/frame":
             return self.frame()
+        if path == "/api/text_to_sign":
+            return self.text_to_sign()
         if path != "/api/infer":
             return json_response(self, {"error": "Not found"}, 404)
         try:
@@ -160,6 +163,16 @@ class AppHandler(BaseHTTPRequestHandler):
                 },
             )
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            return json_response(self, {"error": str(error)}, 400)
+
+    def text_to_sign(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(content_length))
+            if not isinstance(payload, dict) or not isinstance(payload.get("text"), str):
+                raise ValueError("text must be a string")
+            return json_response(self, text_to_sign(payload["text"]))
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
             return json_response(self, {"error": str(error)}, 400)
 
     def frame(self):

@@ -296,6 +296,32 @@ runSample.addEventListener("click", async () => {
 });
 
 refreshFailures.addEventListener("click", loadFailureEvents);
+document.querySelector("#text-to-sign").addEventListener("click", async () => {
+  const button = document.querySelector("#text-to-sign");
+  const text = document.querySelector("#hearing-text").value;
+  button.disabled = true;
+  try {
+    const response = await fetch("/api/text_to_sign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!response.ok) throw new Error("Text-to-sign request failed");
+    const result = await response.json();
+    playGlosses(result.glosses, result.unmatched);
+    if (!text.trim()) {
+      setText("#text-sign-unmatched", "Enter some text to find supported signs.");
+    } else if (result.unmatched.length) {
+      setText("#text-sign-unmatched", `Unmatched words: ${result.unmatched.join(", ")}`);
+    } else {
+      setText("#text-sign-unmatched", `Matched ${result.glosses.length} gloss(es).`);
+    }
+  } catch (error) {
+    setText("#text-sign-unmatched", error.message);
+  } finally {
+    button.disabled = false;
+  }
+});
 document.querySelector("#avatar-play").addEventListener("click", startAvatarPlayback);
 document.querySelector("#avatar-pause").addEventListener("click", () => {
   avatarPlaying = false;

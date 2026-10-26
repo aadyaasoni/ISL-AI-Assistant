@@ -7,6 +7,7 @@ from .meaning_layer import meaning_for_gloss
 from .orchestrator import Orchestrator
 from .pipeline import CommunicationPipeline
 from .runtime import RecognitionRuntime
+from .text_to_sign import text_to_sign
 
 __all__ = [
 	"ConversationAgent",
@@ -20,4 +21,5 @@ __all__ = [
 	"evaluate_cases",
 	"read_failure_events",
 	"meaning_for_gloss",
+	"text_to_sign",
 ]
