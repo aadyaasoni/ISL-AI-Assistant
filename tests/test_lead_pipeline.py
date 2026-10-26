@@ -1,7 +1,9 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from src.lead_pipeline import (
     ConversationAgent,
@@ -13,6 +15,7 @@ from src.lead_pipeline import (
     RecognitionRuntime,
     evaluate_cases,
     meaning_for_gloss,
+    read_failure_events,
 )
 
 
@@ -165,6 +168,38 @@ class LeadPipelineTests(unittest.TestCase):
     def test_failure_log_config_rejects_absolute_paths(self) -> None:
         with self.assertRaisesRegex(ValueError, "must be relative"):
             OrchestratorConfig(failure_log_path=Path.cwd() / "events.jsonl")
+
+    def test_failure_log_config_reads_relative_environment_path(self) -> None:
+        with patch.dict(os.environ, {"ISL_FAILURE_LOG_PATH": "tmp/events.jsonl"}):
+            config = OrchestratorConfig()
+
+        self.assertEqual(config.failure_log_path, Path("tmp/events.jsonl"))
+
+    def test_failure_events_reader_returns_recent_jsonl_records(self) -> None:
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:
+            log_path = Path(directory) / "events.jsonl"
+            log_path.write_text(
+                '\n'.join(
+                    json.dumps({"reason": str(index)}) for index in range(3)
+                ),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                read_failure_events(log_path, limit=2),
+                [{"reason": "1"}, {"reason": "2"}],
+            )
+
+    def test_failure_events_reader_treats_missing_log_as_empty(self) -> None:
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:
+            self.assertEqual(
+                read_failure_events(Path(directory) / "missing.jsonl"),
+                [],
+            )
+
+    def test_failure_events_reader_rejects_nonpositive_limit(self) -> None:
+        with self.assertRaisesRegex(ValueError, "limit must be positive"):
+            read_failure_events(Path("unused.jsonl"), limit=0)
 
     def test_unknown_gloss_failure_is_logged(self) -> None:
         orchestrator = self.make_orchestrator()

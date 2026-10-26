@@ -1,0 +1,12 @@
+.git
+.venv
+venv
+**/__pycache__
+.pytest_cache
+data/raw
+deliverables
+reports/*.json
+reports/*.jsonl
+reports/*.log
+reports/*.md
+reports/*.txt

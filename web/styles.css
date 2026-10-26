@@ -62,4 +62,11 @@ select { min-width: 0; flex: 1; border: 1px solid var(--line); border-radius: 4p
 .note-index { color: var(--coral); font: 700 .75rem ui-sans-serif, sans-serif; }
 .note strong { font-size: 1rem; }
 .note p { margin-top: 5px; color: var(--muted); font: .78rem/1.4 ui-sans-serif, sans-serif; }
+.failure-panel { margin-top: 18px; padding: 20px 22px; }
+.failure-panel > .muted { margin: 14px 0 8px; }
+.failure-table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font: .8rem ui-sans-serif, sans-serif; text-align: left; }
+th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-size: .68rem; text-transform: uppercase; letter-spacing: .07em; }
+td { overflow-wrap: anywhere; }
 @media (max-width: 760px) { .shell { width: min(100% - 24px, 600px); padding-top: 18px; } .hero-grid, .footer-grid { grid-template-columns: 1fr; } .control-strip { align-items: stretch; flex-direction: column; } .probe-controls { min-width: 0; } .camera-actions { align-items: flex-start; flex-direction: column; } }

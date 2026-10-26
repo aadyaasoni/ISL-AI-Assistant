@@ -1,5 +1,9 @@
 .DS_Store
 venv/
+.venv/
+.env
+.env.*
+!.env.example
 INCLUDE/
 data/raw/
 __pycache__/

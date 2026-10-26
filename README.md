@@ -1,225 +1,120 @@
-# INCLUDE-50 Landmark Preprocessing
+# ISL Communication Assistant
 
-This directory contains the Adjectives-category preprocessing baseline for the INCLUDE-50 Indian Sign Language dataset.
-
-## Verified dataset
-
-- Samples: 233 videos across 11 target labels
-- Source metadata: `data/include_metadata/include50_metadata.csv`
-- Original split: preserved from the supplied metadata
-- Video quality: 233 readable, 0 failed
-- Sequence length: 36 to 83 frames, average 55.91 frames
-- Video rate: 25 FPS
-
-## Landmark schema
-
-Each `.npz` file contains:
-
-- `features`: float32 array with shape `(T, 258)`
-- `mask`: float32 array with shape `(T, 75)`
-
-The 258 values per frame are ordered as:
-
-1. Left hand: 21 landmarks x `(x, y, z)` = 63 values
-2. Right hand: 21 landmarks x `(x, y, z)` = 63 values
-3. Pose: 33 landmarks x `(x, y, z, visibility)` = 132 values
-
-Within each group, MediaPipe landmark indices are kept in their native order: hand indices 0 through 20, followed by pose indices 0 through 32. The mask uses the same order: 21 left-hand flags, 21 right-hand flags, and 33 pose flags. A flag is 1 when that landmark is detected and 0 otherwise. Pose visibility is retained as the fourth pose feature and is not used as a replacement for the mask.
-
-For each frame, let `p_i` be a landmark coordinate and let `c` be the reference center. When pose landmarks 11 and 12 are both available:
+A deployable prototype for a constrained Indian Sign Language (ISL) communication flow:
 
 ```text
-c = (p_11 + p_12) / 2
-s = ||p_11_xy - p_12_xy||_2
+camera frame -> MediaPipe hand/pose landmarks -> BiLSTM gloss prediction
+             -> confidence-aware routing -> semantic frame -> response text
 ```
 
-Otherwise, use all detected hand landmarks `H`:
+The application provides a browser camera preview, a real-sample inference probe, explicit clarification for uncertain or unmapped glosses, and a recent-failure dashboard. Avatar clip resolution is wired, but playback is **not available**: there are no licensed avatar or sign-animation assets in this repository.
 
-```text
-c = mean(H)
-s = max(max(H_xy) - min(H_xy))
+> **Scope:** this is an 11-class isolated-gloss research/demo prototype, not a general-purpose ISL translator or a production accessibility service. It does not currently translate free-form text or audio into sign language.
+
+## Current capabilities
+
+- MediaPipe extraction of hand and pose landmarks into the 258-feature / 75-mask model input format.
+- A trained BiLSTM checkpoint and recognition adapter returning gloss, confidence, and timestamp.
+- Confidence thresholding, clarification responses, deterministic meaning frames for the 11 dataset glosses, and bounded conversation state.
+- Append-only JSONL logging of low-confidence and unknown-gloss events, with a browser view of recent events.
+- A separate 25-case phrase meaning/response/avatar-mapping evaluation and the existing 24-sample recognition evaluation.
+- Docker image and Compose configuration for self-hosting; GitHub Actions runs tests and builds the image.
+
+## Model evaluation
+
+The checked-in test split contains 44 samples. Its reported macro-F1 is **0.685** and weighted F1 is **0.717**. The `97. dry` class has no samples in that original test split and is excluded from the score. See [`training_outputs/bilstm_baseline/test_evaluation.json`](training_outputs/bilstm_baseline/test_evaluation.json) and [`reports/real_sample_validation.md`](reports/real_sample_validation.md) for per-class results and caveats. These figures describe this fixed split, not expected performance on new signers or environments.
+
+## Run locally
+
+Use Python 3.10 and a webcam-enabled browser. The server loads the checked-in model, label map, MediaPipe task models, and processed sample metadata from repository-relative paths.
+
+### Windows PowerShell
+
+```powershell
+py -3.10 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements-preprocessing.txt -r requirements-training.txt
+python -m pip install pytest
+python -m pytest -q
+python web/server.py 8000
 ```
 
-The scale is clamped to `1e-6`. Every coordinate is then normalized as:
-
-```text
-p_normalized = (p - c) / max(s, 1e-6)
-```
-
-If no pose or hand landmark is available, `c = (0, 0, 0)` and `s = 1`. Missing landmarks are zero-filled; videos are not silently deleted because of missed detections.
-
-MediaPipe is used for a reproducible baseline because it provides hand and upper-body pose landmarks without retaining raw appearance information. It can fail under occlusion, poor lighting, unusual viewpoints, or motion blur. Landmark preprocessing also loses appearance, facial expression, and fine image detail. Face landmarks are intentionally deferred and are not part of this frozen baseline.
-
-## Files
-
-- `data/landmarks/include50/`: one compressed `.npz` sequence per video
-- `data/include_metadata/metadata.csv`: final sample metadata
-- `data/include_metadata/failed_videos.csv`: failed samples, currently empty apart from the CSV header
-- `data/include_metadata/video_quality.csv`: raw video inspection results
-- `reports/preprocessing_report.txt`: generated summary
-- `scripts/check_video_quality.py`: video readability and duration scan
-- `scripts/extract_landmarks.py`: MediaPipe Tasks extraction
-- `scripts/validate_landmarks.py`: shape validation and report generation
-- `models/mediapipe/`: required hand and pose `.task` assets
-
-## Reproduce
-
-Activate the environment and run:
+### macOS / Linux
 
 ```bash
-source venv/bin/activate
-python scripts/check_video_quality.py
-python scripts/extract_landmarks.py \
-  --hand-model models/mediapipe/hand_landmarker.task \
-  --pose-model models/mediapipe/pose_landmarker_lite.task
-python scripts/validate_landmarks.py
+python3.10 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements-preprocessing.txt -r requirements-training.txt
+python -m pip install pytest
+python -m pytest -q
+python web/server.py 8000
 ```
 
-The original videos are read from `data/raw/include50` and are never modified.
+Open <http://127.0.0.1:8000>. Allow camera access when prompted. The browser camera API requires a secure context: `localhost` is allowed locally, while a remotely hosted instance must be served over HTTPS.
 
-## Colab loading example
+The server supports `HOST` and `PORT` environment variables. It binds to loopback by default for local use; container configuration sets `HOST=0.0.0.0`.
 
-Upload or mount the processed archive, then load samples with:
+## Deploy with Docker
 
-```python
-import numpy as np
-import pandas as pd
-
-metadata = pd.read_csv("data/include_metadata/metadata.csv")
-train = metadata[(metadata["split"] == "train") & (metadata["valid"])]
-
-row = train.iloc[0]
-sample = np.load(row["processed_file_path"])
-features = sample["features"]
-mask = sample["mask"]
-label = row["label"]
-
-print(features.shape, mask.shape, label)
-```
-
-For a BiLSTM or Transformer, keep sequences padded within each batch and use the mask or sequence lengths so padded frames do not contribute to attention or loss. Do not randomly redistribute samples: train/validation/test assignments are retained to avoid leakage. The supplied metadata does not expose signer IDs, so signer-independent separation cannot be verified from this preprocessing run. The `97. dry` class has no test samples in the original metadata and is left unchanged.
-
-## Split counts and training contract
-
-The final split counts are:
-
-| Label | Train | Validation | Test |
-|---|---:|---:|---:|
-| `1. loud` | 13 | 2 | 6 |
-| `2. quiet` | 16 | 2 | 3 |
-| `3. happy` | 16 | 2 | 3 |
-| `78. long` | 14 | 1 | 6 |
-| `79. short` | 14 | 2 | 6 |
-| `83. big large` | 15 | 2 | 4 |
-| `84. small little` | 16 | 2 | 4 |
-| `87. hot` | 14 | 1 | 6 |
-| `91. new` | 16 | 2 | 3 |
-| `94. good` | 16 | 2 | 3 |
-| `97. dry` | 19 | 2 | 0 |
-| **Total** | **169** | **20** | **44** |
-
-Run the baseline with:
+Requirements: Docker Engine and the Docker Compose plugin. The first build downloads the pinned Python dependencies and CPU-only PyTorch; expect a large image and allow several minutes for the initial build.
 
 ```bash
-python -m pip install -r requirements-training.txt
-python scripts/train_bilstm.py
+docker compose up --build
 ```
 
-The generated `training_outputs/bilstm_baseline/label_mapping.json` maps sorted original labels to integer class IDs. The model returns logits with shape `(batch_size, 11)`, in that mapping's order. Softmax probabilities and the predicted class are derived by the consumer; the model does not emit gloss text directly. The trainer writes `best_model.pt`, `metrics.json`, and `metrics.txt`. Macro-F1 is the primary summary metric, with precision, recall, F1, and support reported per class. `97. dry` is included in the label mapping but is explicitly marked not evaluated on test because its original test support is zero.
+Open <http://localhost:8000>. Compose persists the append-only failure log in the `isl-reports` named volume. To use a different log location, set `ISL_FAILURE_LOG_PATH` to a **relative** path in the container. For a cloud container host, build from this repository, expose port `8000`, and configure the host's HTTPS endpoint so browser camera access works.
 
-Run independent evaluation commands after training:
+Check readiness at `/api/health`. The container health check uses the same endpoint. The process runs as a non-root user.
+
+## Evaluation commands
+
+Run recognition on the fixed test samples:
 
 ```bash
-python scripts/evaluate_bilstm.py --split val
-python scripts/evaluate_bilstm.py --split test
-python scripts/audit_splits.py
-python scripts/verify_normalization.py
+python scripts/run_round_trip_evaluation.py --limit 24
 ```
 
-The inference wrapper emits the integration contract expected by the communication pipeline:
-
-```json
-{
-  "gloss": "1. loud",
-  "confidence": 0.57,
-  "timestamp": 1758210000.0,
-  "class_id": 0,
-  "logits": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-  "feature_dimension": 258,
-  "sequence_length": 56
-}
-```
-
-`logits` contains one value for each class in `label_mapping.json`; `confidence` is the softmax probability of the selected gloss. The timestamp is supplied by the caller or generated at inference time.
-
-## RecognitionAdapter integration
-
-Use the adapter without changing the BiLSTM model:
-
-```python
-from scripts.recognition_adapter import RecognitionAdapter
-
-adapter = RecognitionAdapter(
-  "training_outputs/bilstm_baseline/best_model.pt",
-  "training_outputs/bilstm_baseline/label_mapping.json",
-)
-result = adapter.predict(features, mask, timestamp)
-```
-
-`features` must have shape `(T, 258)` and `mask` must have shape `(T, 75)`. `result` contains exactly `gloss`, `confidence`, and `timestamp`, matching `CONTRACT.md`. The adapter also validates the two input shapes before invoking the model.
-
-## Browser presentation layer
-
-Run the local dashboard with the preprocessing environment, which provides MediaPipe and OpenCV:
-
-```bash
-venv/bin/python web/server.py 8000
-```
-
-Open `http://127.0.0.1:8000/` to preview the camera locally, extract MediaPipe hand/pose landmarks, and run short camera sequences through the checkpoint and lead runtime. The dashboard exposes low-confidence clarification and pending avatar fallback states instead of claiming unsupported clips are playable.
-
-The browser sends JPEG frames to `POST /api/frame`; the server returns one normalized feature vector of length `258`, mask vector of length `75`, and a `has_landmarks` flag. Landmark-free frames are not buffered. The browser accumulates 24 valid frames and submits model-ready landmarks to `POST /api/infer` as JSON with `features` shaped `(T, 258)`, `mask` shaped `(T, 75)`, and an optional numeric `timestamp`. Invalid shapes are rejected with HTTP 400.
-
-Run the 24-case runtime evaluation with:
-
-```bash
-python3 scripts/run_round_trip_evaluation.py --limit 24
-```
-
-The JSON report records exact gloss matches, route outcomes, low-confidence cases, unknown-gloss cases, and errors separately.
-
-Run the separate 25-case phrase meaning/response/avatar evaluation with:
+Run the separate phrase evaluation:
 
 ```bash
 python -m src.lead_pipeline.phrase_evaluation
 ```
 
-This writes `reports/phrase_evaluation.json`. Missing avatar clips are reported as `avatar_mapping_gap`; no assets are assumed to be available.
+The phrase report is written to `reports/phrase_evaluation.json`. It distinguishes misrecognition, meaning ambiguity, and avatar mapping gaps. Because the avatar manifest is intentionally pending, missing clips remain failures; the evaluation does not mark hypothetical assets as available.
 
-Capture a small reproducible demo evidence run with:
-
-```bash
-python3 scripts/run_demo_evidence.py
-```
-
-This writes `reports/demo_evidence.json` with raw predictions, route reasons, failure events, and avatar fallback status. It is an evidence artifact, not a substitute for a recorded video demo.
-
-The orchestrator appends structured low-confidence and unknown-gloss events to `reports/failure_events.jsonl` by default. Configure the relative path with `Orchestrator(config=OrchestratorConfig(failure_log_path=Path("...")))`; pass `failure_logger=callback` to also stream events to application logging. Each event contains `reason`, `gloss`, `confidence`, and `timestamp`.
-
-## Validation and avatar preparation
-
-The real-sample checks and aggregate evaluation results are recorded in [`reports/real_sample_validation.md`](reports/real_sample_validation.md). The adapter test suite currently passes all six tests.
-
-Avatar integration requirements and the current asset status are documented in [`avatar/README.md`](avatar/README.md), [`avatar/asset_manifest.json`](avatar/asset_manifest.json), and [`avatar/ATTRIBUTION.md`](avatar/ATTRIBUTION.md). No avatar binaries are included until their source and redistribution license are confirmed.
-
-Validate the current asset state with:
+Capture sample-based demo evidence with:
 
 ```bash
-python3 scripts/validate_avatar_assets.py
+python scripts/run_demo_evidence.py
 ```
 
-The validator accepts the documented `pending-assets` state and requires model files, animation paths, and license metadata before a manifest can be marked `ready`.
+This produces machine-readable evidence, **not** a recorded human demo video.
 
-## Scope and limitations
+## Architecture and API
 
-This is a documented landmark baseline, not a novel preprocessing method. It is suitable for the first recognition experiment. Later experiments can compare face/non-manual features, alternate normalization, temporal resampling, augmentation, and signer-aware splits when signer information becomes available.
+See [`doc/ARCHITECTURE.md`](doc/ARCHITECTURE.md) for the runtime boundaries and [`CONTRACT.md`](CONTRACT.md) for model and orchestrator data shapes.
+
+**Project framing:** built a modular ISL recognition prototype with confidence-aware routing, deterministic semantic frames, explicit failure handling, and a measured end-to-end evaluation. It is intentionally described as a constrained prototype rather than a complete bidirectional translator.
+
+- `GET /api/health` — readiness and label count.
+- `GET /api/samples` — available processed test samples.
+- `GET /api/failures` — latest logged clarification/failure events.
+- `GET /api/infer?sample_id=...` — run inference on a processed sample.
+- `POST /api/frame` — extract one frame's landmarks from a JSON base64 image.
+- `POST /api/infer` — infer from JSON `features`, `mask`, and optional `timestamp`.
+
+Camera frames are processed by the local service. Do not expose this prototype publicly without adding the authentication, request limits, privacy controls, and operational monitoring appropriate for your deployment.
+
+## Known limitations and honest next steps
+
+- **Avatar playback:** no model or sign clips are included. A source and redistribution license must be confirmed before adding assets or enabling playback. See [`avatar/README.md`](avatar/README.md) and [`avatar/asset_manifest.json`](avatar/asset_manifest.json).
+- **Conversation model:** responses are deterministic templates. No external LLM is configured; enabling one requires a provider decision, credentials, and explicit handling of conversation data.
+- **Language coverage:** only 11 isolated adjective glosses have meaning frames. There is no validated continuous-sign grammar, natural-language ISL sentence model, text-to-sign system, or microphone input.
+- **Landmarks:** current model input uses hands and pose, not face/non-manual markers. Landmark extraction and the trained model are an experimental baseline.
+- **Dataset split:** signer IDs are unavailable in the supplied metadata, so signer-independent separation cannot be verified. The `dry` class has zero test support.
+- **Demo:** record a human-operated backup demo separately; generated JSON evidence is not video.
+- **Hosted deployment:** Docker files provide a portable deployment target. A public instance still needs a hosting account, HTTPS domain, and deployment-specific secrets/configuration; this repository does not claim a live hosted service.
+
+Dataset/video and third-party model asset terms remain subject to their respective providers' licenses. Review those terms before redistribution or commercial use.
