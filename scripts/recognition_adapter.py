@@ -35,6 +35,33 @@ class RecognitionAdapter:
 
     def predict(self, features, mask, timestamp=None):
         """Return gloss, confidence, and timestamp from one landmark sequence."""
+        probabilities = self._predict_probabilities(features, mask)
+        class_id = int(probabilities.argmax().item())
+        return {
+            "gloss": self.labels[class_id],
+            "confidence": float(probabilities[class_id].item()),
+            "timestamp": float(time.time() if timestamp is None else timestamp),
+        }
+
+    def predict_with_candidates(self, features, mask, timestamp=None):
+        """Return the existing prediction contract plus the best two labels."""
+        probabilities = self._predict_probabilities(features, mask)
+        class_ids = probabilities.topk(min(2, len(self.labels))).indices.tolist()
+        prediction = {
+            "gloss": self.labels[class_ids[0]],
+            "confidence": float(probabilities[class_ids[0]].item()),
+            "timestamp": float(time.time() if timestamp is None else timestamp),
+        }
+        candidates = [
+            {
+                "gloss": self.labels[class_id],
+                "confidence": float(probabilities[class_id].item()),
+            }
+            for class_id in class_ids
+        ]
+        return prediction, candidates
+
+    def _predict_probabilities(self, features, mask):
         features = np.asarray(features, dtype=np.float32)
         mask = np.asarray(mask, dtype=np.float32)
         if features.ndim != 2 or features.shape[1] != 258:
@@ -47,10 +74,4 @@ class RecognitionAdapter:
         lengths = torch.tensor([features.shape[0]], dtype=torch.long)
         with torch.no_grad():
             logits = self.model(feature_tensor, mask_tensor, lengths)
-            probabilities = torch.softmax(logits, dim=-1)[0]
-        class_id = int(probabilities.argmax().item())
-        return {
-            "gloss": self.labels[class_id],
-            "confidence": float(probabilities[class_id].item()),
-            "timestamp": float(time.time() if timestamp is None else timestamp),
-        }
+            return torch.softmax(logits, dim=-1)[0]

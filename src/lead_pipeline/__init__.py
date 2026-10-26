@@ -4,7 +4,11 @@ from .config import OrchestratorConfig
 from .evaluation import EvaluationCase, evaluate_cases
 from .failure_log import read_failure_events
 from .llm_responder import LLMResponder
-from .meaning_layer import meaning_for_gloss
+from .meaning_layer import (
+    meaning_for_gloss,
+    meaning_for_gloss_sequence,
+    sentence_for_glosses,
+)
 from .orchestrator import Orchestrator
 from .pipeline import CommunicationPipeline
 from .request_limiter import RequestLimiter
@@ -25,5 +29,7 @@ __all__ = [
 	"evaluate_cases",
 	"read_failure_events",
 	"meaning_for_gloss",
+	"meaning_for_gloss_sequence",
+	"sentence_for_glosses",
 	"text_to_sign",
 ]

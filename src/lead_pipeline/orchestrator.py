@@ -73,6 +73,19 @@ class Orchestrator:
         if self.failure_logger is not None:
             self.failure_logger(event)
 
+    def record_user_clarification(self, gloss: str, confidence: float) -> None:
+        normalized_gloss = gloss.strip().lower()
+        if not normalized_gloss:
+            raise ValueError("gloss must be a non-empty string")
+        normalized_confidence = float(confidence)
+        if not 0 <= normalized_confidence <= 1:
+            raise ValueError("confidence must be between 0 and 1")
+        self._record_failure(
+            "user_clarification",
+            normalized_gloss,
+            normalized_confidence,
+        )
+
     @staticmethod
     def _validate_prediction(prediction: dict[str, Any]) -> None:
         required = {"gloss", "confidence", "timestamp"}

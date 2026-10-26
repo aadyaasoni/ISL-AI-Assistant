@@ -16,6 +16,8 @@ from src.lead_pipeline import (
     evaluate_cases,
     meaning_for_gloss,
     read_failure_events,
+    sentence_for_glosses,
+    meaning_for_gloss_sequence,
 )
 
 
@@ -101,6 +103,19 @@ class LeadPipelineTests(unittest.TestCase):
 
         self.assertEqual(meaning["intent"], "unknown")
         self.assertEqual(meaning["mapping_status"], "unmapped")
+
+    def test_recognized_gloss_sequence_builds_grounded_english_sentence(self) -> None:
+        meaning = meaning_for_gloss_sequence(["1. loud", "3. happy"])
+
+        self.assertEqual(meaning["intent"], "recognized_words")
+        self.assertEqual(
+            sentence_for_glosses(meaning["slots"]["glosses"]),
+            "The recognized words are loud and happy.",
+        )
+
+    def test_sequence_sentence_rejects_unknown_gloss(self) -> None:
+        with self.assertRaisesRegex(ValueError, "no supported property meaning"):
+            sentence_for_glosses(["unmapped"])
 
     def test_orchestrator_uses_injected_conversation_agent(self) -> None:
         agent = ConversationAgent(

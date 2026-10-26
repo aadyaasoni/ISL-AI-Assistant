@@ -23,6 +23,10 @@ class ConversationState:
             return "Hello. How can I help you?"
         if intent == "describe_property":
             return f"I understood the property: {meaning['slots']['property']}."
+        if intent == "recognized_words":
+            from .meaning_layer import sentence_for_glosses
+
+            return sentence_for_glosses(meaning["slots"]["glosses"])
         return "I do not have a meaning for that sign yet."
 
 

@@ -47,6 +47,19 @@ class RecognitionAdapterTests(unittest.TestCase):
         self.assertGreaterEqual(result["confidence"], 0.0)
         self.assertLessEqual(result["confidence"], 1.0)
 
+    def test_predict_with_candidates_returns_top_two_probabilities(self):
+        prediction, candidates = adapter().predict_with_candidates(
+            np.zeros((4, 258), dtype=np.float32),
+            np.ones((4, 75), dtype=np.float32),
+            123.0,
+        )
+
+        self.assertEqual(prediction["gloss"], candidates[0]["gloss"])
+        self.assertEqual(prediction["confidence"], candidates[0]["confidence"])
+        self.assertEqual(len(candidates), 2)
+        self.assertGreaterEqual(candidates[0]["confidence"], candidates[1]["confidence"])
+        self.assertLessEqual(sum(item["confidence"] for item in candidates), 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()

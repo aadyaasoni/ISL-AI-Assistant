@@ -9,81 +9,24 @@ import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-
-HAND_LANDMARKS = 21
-POSE_LANDMARKS = 33
-FEATURE_DIMENSION = (2 * HAND_LANDMARKS * 3) + (POSE_LANDMARKS * 4)
-TARGET_LABELS = {
-    "1. loud",
-    "2. quiet",
-    "3. happy",
-    "78. long",
-    "79. short",
-    "83. big large",
-    "84. small little",
-    "87. hot",
-    "91. new",
-    "94. good",
-    "97. dry",
-}
-
-
-def empty_frame():
-    return np.zeros(FEATURE_DIMENSION, dtype=np.float32), np.zeros(75, dtype=np.float32)
-
-
-def landmark_xyz(landmarks, count):
-    values = np.zeros((count, 3), dtype=np.float32)
-    for index, landmark in enumerate(landmarks[:count]):
-        values[index] = [landmark.x, landmark.y, landmark.z]
-    return values
-
-
-def normalize_landmarks(left_hand, right_hand, pose):
-    visible_pose = pose[:, 3] > 0
-    if visible_pose[11] and visible_pose[12]:
-        center = (pose[11, :3] + pose[12, :3]) / 2.0
-        scale = np.linalg.norm(pose[11, :2] - pose[12, :2])
-    else:
-        visible_hands = np.concatenate([left_hand, right_hand])
-        visible_hands = visible_hands[np.any(visible_hands != 0, axis=1)]
-        center = visible_hands[:, :3].mean(axis=0) if len(visible_hands) else np.zeros(3)
-        scale = np.ptp(visible_hands[:, :2], axis=0).max() if len(visible_hands) else 1.0
-
-    scale = max(float(scale), 1e-6)
-    visible_left = np.any(left_hand != 0, axis=1)
-    visible_right = np.any(right_hand != 0, axis=1)
-    left_hand[visible_left] = (left_hand[visible_left] - center) / scale
-    right_hand[visible_right] = (right_hand[visible_right] - center) / scale
-    pose[visible_pose, :3] = (pose[visible_pose, :3] - center) / scale
-    return left_hand, right_hand, pose
-
-
-def frame_features(hand_result, pose_result):
-    left_hand = np.zeros((HAND_LANDMARKS, 3), dtype=np.float32)
-    right_hand = np.zeros((HAND_LANDMARKS, 3), dtype=np.float32)
-    pose = np.zeros((POSE_LANDMARKS, 4), dtype=np.float32)
-    mask = np.zeros(75, dtype=np.float32)
-
-    for index, landmarks in enumerate(hand_result.hand_landmarks):
-        hand = landmark_xyz(landmarks, HAND_LANDMARKS)
-        handedness = hand_result.handedness[index][0].category_name.lower()
-        if handedness == "left":
-            left_hand = hand
-            mask[:HAND_LANDMARKS] = 1.0
-        elif handedness == "right":
-            right_hand = hand
-            mask[HAND_LANDMARKS : 2 * HAND_LANDMARKS] = 1.0
-
-    if pose_result.pose_landmarks:
-        for index, landmark in enumerate(pose_result.pose_landmarks[0][:POSE_LANDMARKS]):
-            pose[index] = [landmark.x, landmark.y, landmark.z, landmark.visibility]
-        mask[2 * HAND_LANDMARKS :] = pose[:, 3] > 0
-
-    left_hand, right_hand, pose = normalize_landmarks(left_hand, right_hand, pose)
-    features = np.concatenate([left_hand.reshape(-1), right_hand.reshape(-1), pose.reshape(-1)])
-    return features.astype(np.float32), mask
-
+try:
+    from .landmark_preprocessing import (
+        FEATURE_DIMENSION,
+        TARGET_LABELS,
+        empty_frame,
+        frame_features,
+        landmark_xyz,
+        normalize_landmarks,
+    )
+except ImportError:
+    from landmark_preprocessing import (
+        FEATURE_DIMENSION,
+        TARGET_LABELS,
+        empty_frame,
+        frame_features,
+        landmark_xyz,
+        normalize_landmarks,
+    )
 
 def build_landmarkers(hand_model, pose_model):
     hand_options = vision.HandLandmarkerOptions(
