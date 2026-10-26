@@ -1,22 +1,19 @@
-# Avatar Assets
+# Avatar Playback
 
-The avatar directory is reserved for the communication-layer presentation assets. No binary assets are committed yet.
+The browser displays a lightweight 2D stick-figure animation made from the extracted landmark samples. The gloss-to-clip index is `clips/index.json`; source attribution and the unresolved dataset redistribution question are documented in `ATTRIBUTION.md`.
 
-## Required package
+## Current skeleton mode
 
-- `avatar.glb` or `avatar.gltf`: the rigged avatar model
-- `idle` animation: default resting pose
-- Sign animation clips keyed by the model gloss labels
-- `ATTRIBUTION.md`: source, license, and redistribution terms
+- `clips/<label>.json`: one downsampled normalized landmark sequence per gloss
+- `clips/index.json`: dataset gloss to clip filename mapping
+- `asset_manifest.json`: declares `skeleton-avatar`, not a rigged or licensed 3D model
 
-## Integration requirements
+Regenerate clips from the checked-in processed landmarks with:
 
-- Use a web-compatible glTF/GLB model.
-- Keep animation names stable and document them in an asset manifest.
-- Preserve a neutral idle pose and visible hands.
-- Do not bundle raw dataset videos or landmark files as avatar assets.
-- Map animation names to the model labels in a separate manifest rather than hardcoding paths in recognition code.
+```bash
+python scripts/build_avatar_clips.py
+```
 
-Once the model and clips are available, add an `asset_manifest.json` containing the model path, animation names, supported glosses, and license metadata.
+No raw video is copied into the clips. Check the dataset attribution and redistribution terms before redistributing generated skeleton data.
 
-Run `python3 scripts/validate_avatar_assets.py` before enabling playback. It rejects missing files, duplicate animation names, unsupported model formats, and incomplete license metadata. The current manifest intentionally validates as `pending-assets`.
+A rigged 3D avatar, licensed sign animation assets, and a renderer are future work. Validate the manifest with `python scripts/validate_avatar_assets.py`.

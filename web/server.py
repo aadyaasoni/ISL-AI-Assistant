@@ -13,6 +13,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = ROOT / "web"
+AVATAR_CLIPS_ROOT = ROOT / "avatar" / "clips"
 METADATA_PATH = ROOT / "data/include_metadata/metadata.csv"
 CHECKPOINT_PATH = ROOT / "training_outputs/bilstm_baseline/best_model.pt"
 LABEL_MAP_PATH = ROOT / "training_outputs/bilstm_baseline/label_mapping.json"
@@ -34,10 +35,14 @@ LABELS = [
 ]
 adapter = None
 runtime = None
+with (AVATAR_CLIPS_ROOT / "index.json").open(encoding="utf-8") as file:
+    AVATAR_CLIPS = json.load(file)["gloss_to_clip"]
 avatar_resolver = GlossClipResolver(
-    mapping={},
-    clip_loader=lambda clip_path: clip_path,
-    fallback_clip="pending://avatar-assets",
+    mapping={
+        gloss.strip().lower(): str(AVATAR_CLIPS_ROOT / filename)
+        for gloss, filename in AVATAR_CLIPS.items()
+    },
+    clip_loader=lambda clip_path: f"/avatar/clips/{Path(clip_path).name}",
 )
 with METADATA_PATH.open(newline="", encoding="utf-8") as file:
     SAMPLE_ROWS = [
@@ -48,6 +53,22 @@ HAND_MODEL_PATH = ROOT / "models/mediapipe/hand_landmarker.task"
 POSE_MODEL_PATH = ROOT / "models/mediapipe/pose_landmarker_lite.task"
 camera_landmarkers = None
 camera_timestamp_ms = 0
+
+
+def avatar_playback(glosses):
+    clips = []
+    unmatched = []
+    for gloss in glosses:
+        try:
+            clips.extend(avatar_resolver.resolve([gloss]))
+        except KeyError:
+            unmatched.append(gloss)
+    return {
+        "status": "ready" if clips else "no_clip",
+        "glosses": list(glosses),
+        "clips": clips,
+        "unmatched": unmatched,
+    }
 
 
 def json_response(handler, payload, status=200):
@@ -125,13 +146,17 @@ class AppHandler(BaseHTTPRequestHandler):
             current_runtime = get_runtime()
             prediction = get_adapter().predict(features, mask, timestamp)
             routed = current_runtime.orchestrator.route(prediction)
-            avatar_clip = avatar_resolver.resolve([prediction["gloss"]])[0]
+            response_glosses = (
+                [routed["meaning"]["source_gloss"]]
+                if routed["status"] == "accepted"
+                else ["please repeat"]
+            )
             return json_response(
                 self,
                 {
                     "prediction": prediction,
                     "route": routed,
-                    "avatar": {"clip": avatar_clip, "status": "pending-assets"},
+                    "avatar": avatar_playback(response_glosses),
                 },
             )
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
@@ -183,7 +208,11 @@ class AppHandler(BaseHTTPRequestHandler):
         current_runtime = get_runtime()
         prediction = get_adapter().predict(features, mask, timestamp)
         routed = current_runtime.orchestrator.route(prediction)
-        avatar_clip = avatar_resolver.resolve([prediction["gloss"]])[0]
+        response_glosses = (
+            [routed["meaning"]["source_gloss"]]
+            if routed["status"] == "accepted"
+            else ["please repeat"]
+        )
         return json_response(
             self,
             {
@@ -191,15 +220,28 @@ class AppHandler(BaseHTTPRequestHandler):
                 "expected_gloss": row["label"],
                 "prediction": prediction,
                 "route": routed,
-                "avatar": {"clip": avatar_clip, "status": "pending-assets"},
+                "avatar": avatar_playback(response_glosses),
             },
         )
 
     def serve_static(self, path):
+        if path.startswith("/avatar/clips/"):
+            relative_clip = unquote(path.removeprefix("/avatar/clips/"))
+            candidate = (AVATAR_CLIPS_ROOT / relative_clip).resolve()
+            if (
+                AVATAR_CLIPS_ROOT not in candidate.parents
+                or not candidate.is_file()
+            ):
+                return json_response(self, {"error": "Not found"}, 404)
+            return self.serve_file(candidate)
         relative = "index.html" if path in ("", "/") else unquote(path.lstrip("/"))
         candidate = (WEB_ROOT / relative).resolve()
         if WEB_ROOT not in candidate.parents or not candidate.is_file():
             return json_response(self, {"error": "Not found"}, 404)
+
+        return self.serve_file(candidate)
+
+    def serve_file(self, candidate):
         content_type = mimetypes.guess_type(candidate.name)[0] or "application/octet-stream"
         body = candidate.read_bytes()
         self.send_response(200)

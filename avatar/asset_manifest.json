@@ -1,9 +1,9 @@
 {
-  "status": "pending-assets",
+  "status": "skeleton-avatar",
   "model": null,
   "animations": [],
-  "supported_glosses": [],
-  "unsupported_glosses": [
+  "clip_index": "clips/index.json",
+  "supported_glosses": [
     "1. loud",
     "2. quiet",
     "3. happy",
@@ -16,6 +16,7 @@
     "94. good",
     "97. dry"
   ],
+  "unsupported_glosses": [],
   "license": null,
-  "notes": "No avatar binaries are committed until a source and redistribution license are confirmed."
+  "notes": "Skeleton landmark playback only; no rigged 3D model or licensed animation assets are included. See ATTRIBUTION.md."
 }
