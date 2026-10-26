@@ -1,5 +1,4 @@
 import csv
-import base64
 import json
 import logging
 import mimetypes
@@ -17,8 +16,12 @@ AVATAR_CLIPS_ROOT = ROOT / "avatar" / "clips"
 METADATA_PATH = ROOT / "data/include_metadata/metadata.csv"
 CHECKPOINT_PATH = ROOT / "training_outputs/bilstm_baseline/best_model.pt"
 LABEL_MAP_PATH = ROOT / "training_outputs/bilstm_baseline/label_mapping.json"
+MEDIAPIPE_MODEL_ROOT = ROOT / "models" / "mediapipe"
+HAND_MODEL_NAME = "hand_landmarker.task"
+POSE_MODEL_NAME = "pose_landmarker_lite.task"
 
 sys.path.insert(0, str(ROOT))
+from scripts.landmark_preprocessing import sequence_from_json
 from src.lead_pipeline import (
     GlossClipResolver,
     LLMResponder,
@@ -26,6 +29,7 @@ from src.lead_pipeline import (
     OrchestratorConfig,
     RequestLimiter,
     RecognitionRuntime,
+    meaning_for_gloss_sequence,
     text_to_sign,
 )
 from src.lead_pipeline.failure_log import read_failure_events
@@ -54,11 +58,7 @@ with METADATA_PATH.open(newline="", encoding="utf-8") as file:
         row for row in csv.DictReader(file) if row["split"] == "test" and row["valid"] == "True"
     ]
 SAMPLES_BY_ID = {row["sample_id"]: row for row in SAMPLE_ROWS}
-HAND_MODEL_PATH = ROOT / "models/mediapipe/hand_landmarker.task"
-POSE_MODEL_PATH = ROOT / "models/mediapipe/pose_landmarker_lite.task"
 MAX_UPLOAD_BYTES = 2 * 1024 * 1024
-camera_landmarkers = None
-camera_timestamp_ms = 0
 api_request_limiter = RequestLimiter(limit=60, window_seconds=60)
 
 
@@ -160,15 +160,31 @@ class AppHandler(BaseHTTPRequestHandler):
         if not self.check_upload_size():
             return
         if path == "/api/frame":
-            return self.frame()
+            return json_response(
+                self,
+                {"error": "Landmark extraction now runs in the browser."},
+                410,
+            )
         if path == "/api/text_to_sign":
             if not self.check_rate_limit("text_to_sign"):
                 return
             return self.text_to_sign()
+        if path in {
+            "/api/infer",
+            "/api/infer_landmarks",
+            "/api/clarification",
+            "/api/compose_sentence",
+        }:
+            if not self.check_rate_limit("infer"):
+                return
+        if path == "/api/infer_landmarks":
+            return self.infer_landmarks()
+        if path == "/api/clarification":
+            return self.record_clarification()
+        if path == "/api/compose_sentence":
+            return self.compose_sentence()
         if path != "/api/infer":
             return json_response(self, {"error": "Not found"}, 404)
-        if not self.check_rate_limit("infer"):
-            return
         try:
             content_length = int(self.headers.get("Content-Length", "0"))
             payload = json.loads(self.rfile.read(content_length))
@@ -245,38 +261,151 @@ class AppHandler(BaseHTTPRequestHandler):
         except (TypeError, ValueError, json.JSONDecodeError) as error:
             return json_response(self, {"error": str(error)}, 400)
 
-    def frame(self):
-        global camera_landmarkers, camera_timestamp_ms
+    def infer_landmarks(self):
         try:
-            import cv2
-            import mediapipe as mp
-            from scripts.extract_landmarks import build_landmarkers, frame_features
-
             content_length = int(self.headers.get("Content-Length", "0"))
             payload = json.loads(self.rfile.read(content_length))
-            encoded_image = payload["image_base64"].split(",")[-1]
-            image_bytes = base64.b64decode(encoded_image, validate=True)
-            image = cv2.imdecode(np.frombuffer(image_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
-            if image is None:
-                raise ValueError("image_base64 is not a decodable image")
-            if camera_landmarkers is None:
-                camera_landmarkers = build_landmarkers(HAND_MODEL_PATH, POSE_MODEL_PATH)
-            rgb_frame = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
-            camera_timestamp_ms = max(camera_timestamp_ms + 1, int(float(payload.get("timestamp_ms", 0))))
-            hand_result = camera_landmarkers[0].detect_for_video(mp_image, camera_timestamp_ms)
-            pose_result = camera_landmarkers[1].detect_for_video(mp_image, camera_timestamp_ms)
-            features, mask = frame_features(hand_result, pose_result)
+            if not isinstance(payload, dict):
+                raise ValueError("request body must be a JSON object")
+            features, mask = sequence_from_json(payload.get("frames"))
+            prediction, candidates = get_adapter().predict_with_candidates(
+                features,
+                mask,
+            )
+            orchestrator = get_runtime().orchestrator
+            prior_glosses = payload.get("context_glosses", [])
+            if not isinstance(prior_glosses, list) or len(prior_glosses) > 15:
+                raise ValueError("context_glosses must be an array of at most 15 glosses")
+            glosses = [
+                value.strip().lower()
+                for value in prior_glosses
+                if isinstance(value, str)
+            ]
+            if len(glosses) != len(prior_glosses):
+                raise ValueError("context_glosses must contain only strings")
+            if glosses:
+                meaning_for_gloss_sequence(glosses)
+            if prediction["confidence"] < orchestrator.confidence_threshold:
+                route = orchestrator.route(prediction)
+                return json_response(
+                    self,
+                    {
+                        "gloss": prediction["gloss"],
+                        "confidence": prediction["confidence"],
+                        "candidates": candidates,
+                        "decision": "clarify",
+                        "route": route,
+                    },
+                )
+
+            glosses.append(prediction["gloss"])
+            try:
+                meaning = meaning_for_gloss_sequence(glosses)
+            except ValueError:
+                route = orchestrator.route(prediction)
+                return json_response(
+                    self,
+                    {
+                        "gloss": prediction["gloss"],
+                        "confidence": prediction["confidence"],
+                        "candidates": candidates,
+                        "decision": "clarify",
+                        "route": route,
+                    },
+                )
+            route = {
+                "status": "accepted",
+                "meaning": meaning,
+                "response_text": orchestrator.conversation_agent.respond(meaning),
+                "confidence": prediction["confidence"],
+                "timestamp": prediction["timestamp"],
+            }
+            route = apply_llm_response(route, self.client_address[0])
             return json_response(
                 self,
                 {
-                    "features": features.tolist(),
-                    "mask": mask.tolist(),
-                    "has_landmarks": bool(np.any(mask)),
-                    "timestamp_ms": camera_timestamp_ms,
+                    "gloss": prediction["gloss"],
+                    "confidence": prediction["confidence"],
+                    "candidates": candidates,
+                    "decision": "confident",
+                    "route": route,
+                    "sentence": route["response_text"],
+                    "reply_glosses": glosses,
+                    "avatar": avatar_playback(glosses),
                 },
             )
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError, base64.binascii.Error, ImportError) as error:
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            return json_response(self, {"error": str(error)}, 400)
+
+    def record_clarification(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(content_length))
+            if not isinstance(payload, dict):
+                raise ValueError("request body must be a JSON object")
+            gloss = payload.get("gloss")
+            confidence = payload.get("confidence")
+            if not isinstance(gloss, str):
+                raise ValueError("gloss must be a string")
+            orchestrator = get_runtime().orchestrator
+            prior_glosses = payload.get("context_glosses", [])
+            if not isinstance(prior_glosses, list) or len(prior_glosses) > 15:
+                raise ValueError("context_glosses must be an array of at most 15 glosses")
+            if any(not isinstance(value, str) for value in prior_glosses):
+                raise ValueError("context_glosses must contain only strings")
+            glosses = [value.strip().lower() for value in prior_glosses]
+            glosses.append(gloss.strip().lower())
+            meaning = meaning_for_gloss_sequence(glosses)
+            orchestrator.record_user_clarification(gloss, confidence)
+            response_text = orchestrator.conversation_agent.respond(meaning)
+            route = {
+                "status": "accepted",
+                "meaning": meaning,
+                "response_text": response_text,
+                "confidence": float(confidence),
+            }
+            route = apply_llm_response(route, self.client_address[0])
+            return json_response(
+                self,
+                {
+                    "status": "logged",
+                    "sentence": route["response_text"],
+                    "reply_glosses": glosses,
+                    "avatar": avatar_playback(glosses),
+                },
+            )
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            return json_response(self, {"error": str(error)}, 400)
+
+    def compose_sentence(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(content_length))
+            if not isinstance(payload, dict):
+                raise ValueError("request body must be a JSON object")
+            glosses = payload.get("glosses")
+            if not isinstance(glosses, list) or len(glosses) > 16:
+                raise ValueError("glosses must be an array of at most 16 items")
+            if any(not isinstance(gloss, str) for gloss in glosses):
+                raise ValueError("glosses must contain only strings")
+            meaning = meaning_for_gloss_sequence(glosses)
+            orchestrator = get_runtime().orchestrator
+            response_text = orchestrator.conversation_agent.respond(meaning)
+            route = {
+                "status": "accepted",
+                "meaning": meaning,
+                "response_text": response_text,
+            }
+            route = apply_llm_response(route, self.client_address[0])
+            return json_response(
+                self,
+                {
+                    "sentence": route["response_text"],
+                    "reply_glosses": meaning["source_glosses"],
+                    "avatar": avatar_playback(meaning["source_glosses"]),
+                },
+            )
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
             return json_response(self, {"error": str(error)}, 400)
 
     def infer(self, query):
@@ -309,6 +438,11 @@ class AppHandler(BaseHTTPRequestHandler):
         )
 
     def serve_static(self, path):
+        if path.startswith("/models/mediapipe/"):
+            model_name = unquote(path.removeprefix("/models/mediapipe/"))
+            if model_name not in {HAND_MODEL_NAME, POSE_MODEL_NAME}:
+                return json_response(self, {"error": "Not found"}, 404)
+            return self.serve_file(MEDIAPIPE_MODEL_ROOT / model_name)
         if path.startswith("/avatar/clips/"):
             relative_clip = unquote(path.removeprefix("/avatar/clips/"))
             candidate = (AVATAR_CLIPS_ROOT / relative_clip).resolve()

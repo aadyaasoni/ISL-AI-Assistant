@@ -38,6 +38,7 @@ h1, h2 { font-size: 1.45rem; line-height: 1.2; }
 .camera-frame { position: relative; isolation: isolate; overflow: hidden; width: 100%; aspect-ratio: 4 / 3; margin: 20px 0 14px; border: 1px solid #2a3946; border-radius: 12px; background: #101821; }
 .camera-frame video { position: absolute; z-index: 0; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); opacity: 0; transition: opacity .2s ease; }
 .camera-frame.is-live video { opacity: 1; }
+#landmark-overlay { position: absolute; z-index: 1; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; transform: scaleX(-1); }
 .camera-empty { position: absolute; z-index: 1; inset: 0; display: grid; align-content: center; justify-items: center; gap: 9px; padding: 20px; color: var(--ink); text-align: center; background: radial-gradient(ellipse at center, #1d2b38, #111821 72%); }
 .camera-empty[hidden] { display: none !important; }
 .camera-empty strong { font-size: .9rem; font-weight: 650; }
@@ -74,7 +75,16 @@ select { padding: 0 11px; }
 .avatar-controls select { min-height: 34px; padding: 0 8px; font-size: .78rem; }
 .icon-button { min-height: 34px; padding: 0 11px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-size: .75rem; font-weight: 600; }
 .reply-copy { padding: 21px 2px 0; }
+.recognition-status { margin: 12px 0 0; color: var(--accent); font-size: .84rem; font-weight: 650; }
 .response-text { min-height: 50px; margin: 0; font-size: 1.04rem; line-height: 1.5; }
+.recognized-label { margin: 10px 0 7px; color: var(--muted); font-size: .7rem; font-weight: 650; }
+.recognized-words { display: flex; flex-wrap: wrap; min-height: 28px; gap: 6px; }
+.recognized-word { padding: 5px 9px; border: 1px solid #31564f; border-radius: 999px; color: #c8fff1; background: #15302b; font-size: .72rem; text-transform: capitalize; }
+.sentence-controls { display: flex; gap: 8px; margin-top: 10px; }
+.sentence-controls .button { min-height: 34px; padding: 0 11px; font-size: .72rem; }
+.clarification-options { margin-top: 12px; padding: 12px; border: 1px solid #664b3b; border-radius: 10px; background: #2d241d; }
+.clarification-prompt { margin: 0 0 9px; color: #ffe0be; font-size: .82rem; }
+.clarification-options .button-row { flex-wrap: wrap; }
 .recognition-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 16px 0 10px; }
 .recognition-summary > div { display: grid; gap: 5px; }
 .recognition-summary strong { font-size: .9rem; font-weight: 650; }

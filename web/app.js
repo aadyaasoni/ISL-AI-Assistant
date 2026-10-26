@@ -1,6 +1,8 @@
 const camera = document.querySelector("#camera");
 const cameraFrame = document.querySelector("#camera-frame");
 const cameraEmpty = document.querySelector("#camera-empty");
+const landmarkOverlay = document.querySelector("#landmark-overlay");
+const landmarkContext = landmarkOverlay.getContext("2d");
 const cameraEnable = document.querySelector("#camera-enable");
 const cameraStop = document.querySelector("#camera-stop");
 const cameraNote = document.querySelector("#camera-note");
@@ -10,7 +12,7 @@ const runSample = document.querySelector("#run-sample");
 const avatarCanvas = document.querySelector("#avatar-canvas");
 const avatarContext = avatarCanvas.getContext("2d");
 const avatarClipCache = new Map();
-const sequenceLength = 24;
+const sequenceLength = 56;
 const poseUpperBodyIndices = [0, 7, 8, 11, 12, 13, 14, 15, 16, 23, 24];
 const poseEdges = [
   [11, 12],
@@ -41,10 +43,18 @@ let avatarSpeed = 1;
 let playbackPosition = 0;
 let previousAnimationTime = 0;
 let stream;
-let captureTimer;
-let frameCanvas;
-let frameBuffer = [];
-let frameBusy = false;
+let handLandmarker;
+let poseLandmarker;
+let detectionFrameId;
+let lastDetectionAt = 0;
+let previousHandCenter;
+let preRollFrames = [];
+let segmentFrames = [];
+let segmentStartedAt = 0;
+let lastHandMotionAt = 0;
+let segmentProcessing = false;
+let pendingClarification;
+let recognizedGlosses = [];
 let sampleRows = [];
 
 function setText(selector, value) {
@@ -104,21 +114,59 @@ function updateCameraState(enabled) {
 }
 
 function stopCamera(message = "Camera is off. Enable it when you're ready to sign.") {
-  if (captureTimer) window.clearInterval(captureTimer);
-  captureTimer = undefined;
+  if (detectionFrameId) window.cancelAnimationFrame(detectionFrameId);
+  detectionFrameId = undefined;
   if (stream) stream.getTracks().forEach((track) => track.stop());
   stream = undefined;
   camera.pause();
   camera.srcObject = null;
-  frameBuffer = [];
-  frameBusy = false;
+  segmentFrames = [];
+  preRollFrames = [];
+  previousHandCenter = undefined;
+  segmentProcessing = false;
+  landmarkContext.clearRect(0, 0, landmarkOverlay.width, landmarkOverlay.height);
   updateCameraState(false);
   cameraNote.textContent = message;
+  setText("#recognition-status", "Show your hands to begin.");
+}
+
+const visionVersion = "0.10.22-rc.20250304";
+const visionBaseUrl = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${visionVersion}`;
+
+async function initializeLandmarkers() {
+  if (handLandmarker && poseLandmarker) return;
+  const { FilesetResolver, HandLandmarker, PoseLandmarker } = await import(
+    `${visionBaseUrl}/vision_bundle.mjs`
+  );
+  const fileset = await FilesetResolver.forVisionTasks(`${visionBaseUrl}/wasm`);
+  const handTask = await HandLandmarker.createFromOptions(fileset, {
+    baseOptions: {
+      modelAssetPath: "/models/mediapipe/hand_landmarker.task",
+      delegate: "CPU",
+    },
+    runningMode: "VIDEO",
+    numHands: 2,
+  });
+  try {
+    poseLandmarker = await PoseLandmarker.createFromOptions(fileset, {
+      baseOptions: {
+        modelAssetPath: "/models/mediapipe/pose_landmarker_lite.task",
+        delegate: "CPU",
+      },
+      runningMode: "VIDEO",
+      numPoses: 1,
+    });
+    handLandmarker = handTask;
+  } catch (error) {
+    handTask.close();
+    throw error;
+  }
 }
 
 async function enableCamera() {
   if (!navigator.mediaDevices?.getUserMedia) {
     cameraNote.textContent = "Camera access is unavailable in this browser. Open the app over HTTPS in a current browser.";
+    setText("#recognition-status", "Live recognition unavailable; use a recorded sample.");
     return;
   }
   cameraEnable.disabled = true;
@@ -139,17 +187,204 @@ async function enableCamera() {
       throw new Error("The camera connected but returned an empty video frame. Try another camera.");
     }
     await camera.play();
-    frameCanvas = document.createElement("canvas");
-    frameCanvas.width = 640;
-    frameCanvas.height = 360;
-    frameBuffer = [];
     updateCameraState(true);
-    cameraNote.textContent = `Live mirrored preview · ${camera.videoWidth} × ${camera.videoHeight}. Sign when ready.`;
-    captureTimer = window.setInterval(captureFrame, 180);
+    landmarkOverlay.width = camera.videoWidth;
+    landmarkOverlay.height = camera.videoHeight;
+    cameraNote.textContent = `Live mirrored preview · ${camera.videoWidth} × ${camera.videoHeight}.`;
+    setText("#recognition-status", "Loading live recognition…");
+    try {
+      await initializeLandmarkers();
+      cameraNote.textContent = "Live recognition ready. Show your hands and sign one word.";
+      setText("#recognition-status", "Show your hands.");
+      lastDetectionAt = 0;
+      detectionFrameId = window.requestAnimationFrame(detectLiveFrame);
+    } catch (error) {
+      cameraNote.textContent = `Live recognition could not load (${error.message}). Camera preview is available; use a recorded sample instead.`;
+      setText("#recognition-status", "Live recognition unavailable; recorded samples still work.");
+      handLandmarker?.close();
+      poseLandmarker?.close();
+      handLandmarker = undefined;
+      poseLandmarker = undefined;
+    }
   } catch (error) {
     stopCamera(cameraErrorMessage(error));
+    setText("#recognition-status", "Live recognition unavailable; use a recorded sample.");
   } finally {
     cameraEnable.disabled = false;
+  }
+}
+
+function jsonFrame(handResult, poseResult) {
+  const hands = (handResult.landmarks || []).map((landmarks, index) => ({
+    handedness: handResult.handedness?.[index]?.[0]?.categoryName || "",
+    landmarks: landmarks.map(({ x, y, z }) => ({ x, y, z })),
+  }));
+  const pose = poseResult.landmarks?.[0] || [];
+  return {
+    hands,
+    pose_landmarks: pose.map(({ x, y, z, visibility }) => ({
+      x,
+      y,
+      z,
+      visibility: visibility ?? 0,
+    })),
+  };
+}
+
+function drawLiveOverlay(frame) {
+  const width = landmarkOverlay.width;
+  const height = landmarkOverlay.height;
+  landmarkContext.clearRect(0, 0, width, height);
+  const point = (group, index) => {
+    if (!group[index] || group[index].visibility === 0) return null;
+    return [group[index].x * width, group[index].y * height];
+  };
+  const drawConnections = (points, connections, color, radius, pointIndices = points.map((_, index) => index)) => {
+    landmarkContext.strokeStyle = color;
+    landmarkContext.fillStyle = color;
+    landmarkContext.lineWidth = Math.max(3, width * 0.004);
+    landmarkContext.lineCap = "round";
+    landmarkContext.lineJoin = "round";
+    connections.forEach(([from, to]) => {
+      const start = point(points, from);
+      const end = point(points, to);
+      if (!start || !end) return;
+      landmarkContext.beginPath();
+      landmarkContext.moveTo(...start);
+      landmarkContext.lineTo(...end);
+      landmarkContext.stroke();
+    });
+    pointIndices.forEach((index) => {
+      const location = point(points, index);
+      if (!location) return;
+      landmarkContext.beginPath();
+      landmarkContext.arc(location[0], location[1], radius, 0, Math.PI * 2);
+      landmarkContext.fill();
+    });
+  };
+  const pose = frame.pose_landmarks || [];
+  drawConnections(
+    pose,
+    poseEdges.filter(([a, b]) => a <= 24 && b <= 24),
+    "#eef4f7",
+    Math.max(3, width * 0.004),
+    poseUpperBodyIndices,
+  );
+  const leftEar = point(pose, 7);
+  const rightEar = point(pose, 8);
+  const nose = point(pose, 0);
+  if (leftEar && rightEar && nose) {
+    const centerX = (leftEar[0] + rightEar[0]) / 2;
+    const centerY = (leftEar[1] + rightEar[1]) / 2;
+    const radius = Math.max(Math.hypot(rightEar[0] - leftEar[0], rightEar[1] - leftEar[1]) * 1.15, width * 0.025);
+    landmarkContext.strokeStyle = "#eef4f7";
+    landmarkContext.lineWidth = Math.max(3, width * 0.004);
+    landmarkContext.beginPath();
+    landmarkContext.ellipse(centerX, centerY, radius, radius * 1.18, 0, 0, Math.PI * 2);
+    landmarkContext.stroke();
+  }
+  frame.hands.forEach((hand) => {
+    drawConnections(hand.landmarks, handEdges, "#50d5be", Math.max(2, width * 0.003));
+  });
+}
+
+function handCenter(frame) {
+  const points = frame.hands.flatMap((hand) => hand.landmarks.slice(0, 21));
+  if (!points.length) return null;
+  return {
+    x: points.reduce((sum, item) => sum + item.x, 0) / points.length,
+    y: points.reduce((sum, item) => sum + item.y, 0) / points.length,
+  };
+}
+
+function resampleFrames(frames, targetLength) {
+  return Array.from({ length: targetLength }, (_, index) => {
+    const sourceIndex = Math.round((index * (frames.length - 1)) / (targetLength - 1));
+    return frames[sourceIndex];
+  });
+}
+
+function processSegment() {
+  const duration = performance.now() - segmentStartedAt;
+  const frames = segmentFrames;
+  segmentFrames = [];
+  segmentStartedAt = 0;
+  if (frames.length < 8 || duration < 350) {
+    setText("#recognition-status", "That sign was too brief. Try again with a clear movement.");
+    return;
+  }
+  segmentProcessing = true;
+  setText("#recognition-status", "Signing…");
+  inferSegment(resampleFrames(frames, sequenceLength))
+    .catch((error) => {
+      cameraNote.textContent = `${error.message} Recorded samples are still available.`;
+      setText("#recognition-status", "Could not recognize that sign; try again or use a sample.");
+    })
+    .finally(() => {
+      segmentProcessing = false;
+      if (stream) setText("#recognition-status", "Show your hands.");
+    });
+}
+
+async function inferSegment(frames) {
+  const response = await fetch("/api/infer_landmarks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ frames, context_glosses: recognizedGlosses.slice(-14) }),
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result.error || `Sign recognition failed (${response.status}).`);
+  }
+  const result = await response.json();
+  if (result.decision === "clarify") {
+    showClarification(result);
+    return;
+  }
+  acceptRecognizedGloss(result.gloss);
+  showLiveResult(result);
+}
+
+function detectLiveFrame(now) {
+  if (!stream || !handLandmarker || !poseLandmarker) return;
+  detectionFrameId = window.requestAnimationFrame(detectLiveFrame);
+  if (now - lastDetectionAt < 66 || camera.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+  lastDetectionAt = now;
+  try {
+    const hands = handLandmarker.detectForVideo(camera, now);
+    const pose = poseLandmarker.detectForVideo(camera, now);
+    const frame = jsonFrame(hands, pose);
+    drawLiveOverlay(frame);
+    const center = handCenter(frame);
+    const moving = Boolean(
+      center
+      && previousHandCenter
+      && Math.hypot(center.x - previousHandCenter.x, center.y - previousHandCenter.y) > 0.012,
+    );
+    if (center) previousHandCenter = center;
+    else previousHandCenter = undefined;
+
+    if (!segmentFrames.length && !segmentProcessing && center && moving) {
+      segmentFrames = [...preRollFrames, frame];
+      segmentStartedAt = now;
+      lastHandMotionAt = now;
+      setText("#recognition-status", "Signing…");
+    } else if (segmentFrames.length && !segmentProcessing) {
+      segmentFrames.push(frame);
+      if (moving) lastHandMotionAt = now;
+      if (now - lastHandMotionAt >= 600 || segmentFrames.length >= 120) processSegment();
+    } else if (!segmentProcessing && !center) {
+      setText("#recognition-status", "Show your hands.");
+    } else if (!segmentProcessing && center && !segmentFrames.length) {
+      setText("#recognition-status", "Hands visible. Move to sign.");
+    }
+    preRollFrames.push(frame);
+    if (preRollFrames.length > 4) preRollFrames.shift();
+  } catch (error) {
+    window.cancelAnimationFrame(detectionFrameId);
+    detectionFrameId = undefined;
+    cameraNote.textContent = `Live detection stopped (${error.message}). Use a recorded sample instead.`;
+    setText("#recognition-status", "Live recognition unavailable; recorded samples still work.");
   }
 }
 
@@ -387,8 +622,126 @@ function showResult(payload) {
   const badge = document.querySelector("#confidence-badge");
   badge.textContent = route.status === "accepted" ? "Understood" : "Please repeat";
   badge.className = `confidence-badge ${route.status === "accepted" ? "is-good" : "is-warn"}`;
+  if (route.status === "accepted") acceptRecognizedGloss(prediction.gloss);
   playGlosses(payload.avatar.glosses || [], payload.avatar.unmatched || []);
+  setText("#recognition-status", route.status === "accepted" ? "Recognised from a recorded sample." : route.message);
   loadFailureEvents();
+}
+
+function renderRecognizedWords() {
+  const container = document.querySelector("#recognized-words");
+  container.replaceChildren();
+  recognizedGlosses.forEach((gloss) => {
+    const chip = document.createElement("span");
+    chip.className = "recognized-word";
+    chip.textContent = friendlyWord(gloss);
+    container.append(chip);
+  });
+}
+
+function acceptRecognizedGloss(gloss) {
+  recognizedGlosses.push(gloss);
+  if (recognizedGlosses.length > 15) recognizedGlosses.shift();
+  renderRecognizedWords();
+}
+
+function showLiveResult(result) {
+  const confidence = Number(result.confidence);
+  setText("#gloss", friendlyWord(result.gloss));
+  setText("#confidence", `${(confidence * 100).toFixed(1)}%`);
+  setText("#response", result.sentence || result.route.response_text);
+  document.querySelector("#confidence-fill").style.width = `${confidence * 100}%`;
+  const badge = document.querySelector("#confidence-badge");
+  badge.textContent = "Understood";
+  badge.className = "confidence-badge is-good";
+  document.querySelector("#clarification-options").hidden = true;
+  playGlosses(result.avatar.glosses || [], result.avatar.unmatched || []);
+  setText("#recognition-status", `Recognised: ${friendlyWord(result.gloss)} ${(confidence * 100).toFixed(0)}%`);
+  loadFailureEvents();
+}
+
+function showClarification(result) {
+  pendingClarification = { result };
+  setText("#gloss", friendlyWord(result.gloss));
+  setText("#confidence", `${(Number(result.confidence) * 100).toFixed(1)}%`);
+  setText("#response", result.route.message);
+  const badge = document.querySelector("#confidence-badge");
+  badge.textContent = "Please choose";
+  badge.className = "confidence-badge is-warn";
+  setText(
+    "#recognition-status",
+    `Uncertain: ${friendlyWord(result.candidates[0].gloss)} or ${friendlyWord(result.candidates[1].gloss)}?`,
+  );
+  setText(
+    "#clarification-prompt",
+    `Did you mean ${friendlyWord(result.candidates[0].gloss)} or ${friendlyWord(result.candidates[1].gloss)}?`,
+  );
+  const buttons = document.querySelector("#clarification-buttons");
+  buttons.replaceChildren();
+  result.candidates.slice(0, 2).forEach((candidate) => {
+    const button = document.createElement("button");
+    button.className = "button button-secondary";
+    button.type = "button";
+    button.textContent = `Use ${friendlyWord(candidate.gloss)}`;
+    button.addEventListener("click", () => chooseClarification(candidate));
+    buttons.append(button);
+  });
+  document.querySelector("#clarification-options").hidden = false;
+}
+
+async function chooseClarification(candidate) {
+  if (!pendingClarification) return;
+  const { result } = pendingClarification;
+  const buttons = [...document.querySelectorAll("#clarification-buttons button")];
+  buttons.forEach((button) => { button.disabled = true; });
+  try {
+    const response = await fetch("/api/clarification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        gloss: candidate.gloss,
+        confidence: result.confidence,
+        context_glosses: recognizedGlosses.slice(-14),
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || `Clarification failed (${response.status}).`);
+    acceptRecognizedGloss(candidate.gloss);
+    setText("#response", payload.sentence);
+    setText("#gloss", friendlyWord(candidate.gloss));
+    document.querySelector("#clarification-options").hidden = true;
+    document.querySelector("#confidence-badge").textContent = "Understood";
+    document.querySelector("#confidence-badge").className = "confidence-badge is-good";
+    setText("#recognition-status", `Recognised: ${friendlyWord(candidate.gloss)} (you chose)`);
+    playGlosses(payload.reply_glosses || [], payload.avatar?.unmatched || []);
+    pendingClarification = undefined;
+    loadFailureEvents();
+  } catch (error) {
+    setText("#recognition-status", error.message);
+    buttons.forEach((button) => { button.disabled = false; });
+  }
+}
+
+async function updateSentence() {
+  renderRecognizedWords();
+  if (!recognizedGlosses.length) {
+    setText("#response", "Say a sign to build a sentence.");
+    setText("#gloss", "—");
+    setText("#confidence", "—");
+    document.querySelector("#confidence-fill").style.width = "0%";
+    document.querySelector("#clarification-options").hidden = true;
+    playGlosses([]);
+    return;
+  }
+  const response = await fetch("/api/compose_sentence", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ glosses: recognizedGlosses }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || `Sentence update failed (${response.status}).`);
+  setText("#response", result.sentence);
+  playGlosses(result.reply_glosses || recognizedGlosses);
 }
 
 async function loadSamples() {
@@ -458,54 +811,6 @@ async function checkHealth() {
   }
 }
 
-async function captureFrame() {
-  if (!stream || frameBusy || !camera.videoWidth || !camera.videoHeight) return;
-  frameBusy = true;
-  const context = frameCanvas.getContext("2d");
-  context.drawImage(camera, 0, 0, frameCanvas.width, frameCanvas.height);
-  try {
-    const frameResponse = await fetch("/api/frame", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        image_base64: frameCanvas.toDataURL("image/jpeg", 0.72),
-        timestamp_ms: Date.now(),
-      }),
-    });
-    if (!stream) return;
-    if (!frameResponse.ok) throw new Error(`Landmark extraction failed (${frameResponse.status}).`);
-    const frame = await frameResponse.json();
-    if (!frame.has_landmarks) {
-      cameraNote.textContent = "Camera is live. Move your hands and upper body into view.";
-      return;
-    }
-    frameBuffer.push(frame);
-    cameraNote.textContent = `Live · collecting sign frames ${frameBuffer.length}/${sequenceLength}`;
-    if (frameBuffer.length >= sequenceLength) {
-      const sequence = frameBuffer.splice(0, sequenceLength);
-      const inferenceResponse = await fetch("/api/infer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          features: sequence.map((item) => item.features),
-          mask: sequence.map((item) => item.mask),
-          timestamp: Date.now() / 1000,
-        }),
-      });
-      if (!stream) return;
-      if (!inferenceResponse.ok) throw new Error(`Sign recognition failed (${inferenceResponse.status}).`);
-      showResult(await inferenceResponse.json());
-      cameraNote.textContent = "Live preview · show another sign when ready.";
-    }
-  } catch (error) {
-    cameraNote.textContent = `${error.message} The preview is still on; you can retry or stop the camera.`;
-    window.clearInterval(captureTimer);
-    captureTimer = undefined;
-  } finally {
-    frameBusy = false;
-  }
-}
-
 cameraEnable.addEventListener("click", enableCamera);
 cameraStop.addEventListener("click", () => stopCamera());
 runSample.addEventListener("click", async () => {
@@ -556,6 +861,24 @@ document.querySelector("#avatar-pause").addEventListener("click", () => {
 });
 document.querySelector("#avatar-speed").addEventListener("change", (event) => {
   avatarSpeed = Number(event.target.value);
+});
+document.querySelector("#undo-word").addEventListener("click", async () => {
+  recognizedGlosses.pop();
+  try {
+    await updateSentence();
+  } catch (error) {
+    setText("#recognition-status", error.message);
+  }
+});
+document.querySelector("#clear-words").addEventListener("click", async () => {
+  recognizedGlosses = [];
+  pendingClarification = undefined;
+  try {
+    await updateSentence();
+    setText("#recognition-status", "Show your hands.");
+  } catch (error) {
+    setText("#recognition-status", error.message);
+  }
 });
 document.querySelector("#refresh-failures").addEventListener("click", loadFailureEvents);
 window.addEventListener("resize", () => {

@@ -11,7 +11,7 @@ camera frame -> MediaPipe hand/pose landmarks -> BiLSTM gloss prediction
              -> confidence-aware routing -> semantic frame -> response text
 ```
 
-The application provides a browser camera preview, a real-sample inference probe, explicit clarification for uncertain or unmapped glosses, text-to-sign for supported words, a skeleton avatar, and a recent-failure dashboard.
+The application provides browser-side camera landmarks, motion-based sign segmentation, a recorded-sample fallback, explicit clarification for uncertain glosses, text-to-sign for supported words, a skeleton avatar, and a recent-failure dashboard.
 
 > **Scope:** this is an 11-gloss isolated-sign research/demo prototype, not a general-purpose ISL translator or a production accessibility service. It does not translate continuous signing, arbitrary sentences, or audio.
 
@@ -19,13 +19,15 @@ The application provides a browser camera preview, a real-sample inference probe
 
 | Feature | Status |
 |---|---|
-| Camera recognition | Works as an experimental 11-gloss isolated-sign prototype using MediaPipe landmarks and the checked-in BiLSTM. |
+| Live camera recognition | Browser-side MediaPipe detection, motion segmentation, and 11-gloss isolated-sign classification are implemented. Webcam accuracy is not guaranteed and has not been measured. |
 | Meaning and response | Deterministic semantic frames, confidence-aware clarification, and bounded conversation history. |
 | Skeleton avatar | Plays derived 2D landmark stick-figure clips for the supported glosses. This is not a rigged 3D avatar. |
 | Text-to-sign | Deterministically maps supported words to glosses and plays matching clips; unmatched words are reported. |
 | Optional LLM | Disabled unless `ISL_LLM_API_KEY` is configured; errors/timeouts fall back to the deterministic responder. |
 | Evaluation | Separate 24-sample recognition run and phrase evaluation. Signer-independent performance is unverified. |
 | Deployment | Docker and Hugging Face Spaces instructions are in [`docs/DEPLOY.md`](docs/DEPLOY.md). |
+
+**Manual webcam smoke (2026-10-26):** in one local browser session, camera start showed the live preview and landmark overlay (1/1 start); a movement segment reached low-confidence clarification. No labeled signs were tested (0 accuracy trials), so this is a UI/pipeline smoke check, not an accuracy measurement.
 
 ## Model evaluation
 
@@ -111,11 +113,13 @@ See [`doc/ARCHITECTURE.md`](doc/ARCHITECTURE.md) for the runtime boundaries and 
 - `GET /api/samples` — available processed test samples.
 - `GET /api/failures` — latest logged clarification/failure events.
 - `GET /api/infer?sample_id=...` — run inference on a processed sample.
-- `POST /api/frame` — extract one frame's landmarks from a JSON base64 image.
 - `POST /api/infer` — infer from JSON `features`, `mask`, and optional `timestamp`.
+- `POST /api/infer_landmarks` — classify browser-extracted landmark frames and return top-two candidates.
+- `POST /api/clarification` — record a user's candidate selection and compose its response.
+- `POST /api/compose_sentence` — rebuild the grounded sentence after undo/clear actions.
 - `POST /api/text_to_sign` — map text to supported glosses and unmatched words.
 
-Camera frames are processed into landmarks and are not stored. Request bodies are size-capped, and inference/text-to-sign endpoints are rate-limited.
+Camera frames are processed into landmarks in the browser and are not uploaded, stored, or logged. Landmark request bodies are size-capped and inference/text-to-sign endpoints are rate-limited. The legacy image-based `POST /api/frame` endpoint returns HTTP 410; camera processing no longer runs on the server. See [`doc/LIVE_SCHEMA.md`](doc/LIVE_SCHEMA.md) for the exact training feature layout and live JSON schema.
 
 ## Known limitations and honest next steps
 

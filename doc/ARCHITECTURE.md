@@ -3,35 +3,30 @@
 ## Current flow
 
 ```text
-Browser camera preview
+Browser camera + MediaPipe Tasks Vision (pinned, loaded on demand)
         |
         v
 web/index.html + app.js
         |
-        +--> POST /api/frame {image_base64}
-        |       (MediaPipe hand/pose)
-        |                              |
-        +--> POST /api/infer {features, mask, timestamp}
-        |       or /api/infer?sample_id  v
-                               RecognitionAdapter
-                                             |
-                                             v
-                                      RecognitionRuntime
-                                             |
-                                             v
-                                      Orchestrator
-                                      /          \
-                         low confidence       accepted meaning
-                              |                       |
-                       clarification          ConversationAgent
-                                                     |
-                                                     v
-                                             optional LLM responder
-                                                     |
-                                             deterministic fallback
-                                                     |
+        +--> browser segments hand motion and sends landmark JSON
+        |       POST /api/infer_landmarks
+        |                         |
+        +--> recorded sample ----> RecognitionAdapter
+                                  (CPU BiLSTM)
+                                        |
+                                        v
+                                  Orchestrator
+                                  /          \
+                     low confidence       accepted gloss sequence
+                          |                        |
+                  candidate choice          ConversationAgent
+                          |                        |
+                          +--> clarification       v
+                             event log       deterministic sentence
+                                                 |
+                                                 v
                                       canvas skeleton clip playback
-                                                     
+
 Browser failure table <--- GET /api/failures <--- append-only JSONL log
 
 Hearing-user text box ---> POST /api/text_to_sign ---> glosses + unmatched words
@@ -39,14 +34,15 @@ Hearing-user text box ---> POST /api/text_to_sign ---> glosses + unmatched words
                                                      +--> cached canvas clips
 ```
 
-The local dashboard runs with `python web/server.py 8000`. It uses the real checkpoint for processed `.npz` samples and exposes the same `gloss`, `confidence`, and `timestamp` contract as the integration adapter.
+The local dashboard runs with `python web/server.py 8000`. Live MediaPipe detection, segmentation, and overlay drawing run in the browser; the server receives only landmark coordinates and applies the existing model to them. The browser resamples segments to 56 frames, a representative size rather than a fixed model requirement.
 
 ## Boundaries
 
-- Landmark preprocessing remains Python-side and accepts `(T, 258)` features plus `(T, 75)` masks.
-- `python web/server.py 8000` runs the camera-capable server with the repository's MediaPipe and OpenCV dependencies.
-- `POST /api/frame` converts one browser JPEG into the existing normalized 258-feature and 75-mask schema using the same extractor functions as dataset preprocessing, and marks frames without detections as `has_landmarks: false`.
-- The browser ignores landmark-free frames, accumulates 24 valid frame responses, and sends them to `POST /api/infer`, which validates the adapter shapes before running inference.
+- Browser hand and pose task files are served from `models/mediapipe/`; the pinned Tasks Vision JavaScript and WASM runtime are loaded from jsDelivr. Camera mirroring is display-only; handedness is retained as returned by MediaPipe.
+- `POST /api/infer_landmarks` converts JSON frames through the same pure-NumPy normalization and layout used by `scripts/extract_landmarks.py`, then passes `(T, 258)` features and `(T, 75)` masks to the CPU recognizer.
+- The browser starts a segment when visible hands move, ends it after 600 ms of no movement or no hand, ignores very short segments, and resamples accepted segments to 56 frames.
+- The server returns top-two candidates and a `confident` or `clarify` routing decision. User candidate selection is recorded by `POST /api/clarification`; accepted glosses build a deterministic sentence through `POST /api/compose_sentence`.
+- `POST /api/infer` and `GET /api/infer?sample_id=...` retain their recorded-feature and sample recognition flows. The legacy image-based `POST /api/frame` is deprecated (410); camera processing no longer runs in the server.
 - `POST /api/text_to_sign` tokenizes text deterministically against the supported dataset gloss labels and label synonyms, returning canonical glosses plus unmatched words. No LLM is used on this path.
 - Confidence below the orchestrator threshold produces a clarification response.
 - Unknown meanings are logged as `unknown_gloss` and do not enter the conversation response path.
@@ -55,7 +51,7 @@ The local dashboard runs with `python web/server.py 8000`. It uses the real chec
 - Evaluation reports preserve per-case outcomes so model errors, low confidence, meaning gaps, and avatar mapping gaps remain distinguishable.
 - The orchestrator retains structured `failure_events` for `low_confidence` and `unknown_gloss` outcomes and can forward them through an injected `failure_logger` callback.
 - Failure events are appended to a configurable JSONL path and expose only gloss, confidence, and fallback reason; raw video is not stored or logged.
-- `/api/infer` and `/api/text_to_sign` are rate-limited per client IP, and POST bodies are capped at 2 MiB.
+- `/api/infer`, `/api/infer_landmarks`, `/api/clarification`, `/api/compose_sentence`, and `/api/text_to_sign` are rate-limited per client IP, and POST bodies are capped at 2 MiB.
 - `scripts/run_demo_evidence.py` captures a reproducible three-sample evidence run; a human-recorded backup video remains a separate presentation task.
 - The HTTP service can bind to a configured host and port. Docker Compose exposes the configured app port and checks `/api/health`.
 
