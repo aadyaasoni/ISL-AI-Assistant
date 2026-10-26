@@ -3,9 +3,11 @@ from .conversation_agent import ConversationAgent, ConversationState
 from .config import OrchestratorConfig
 from .evaluation import EvaluationCase, evaluate_cases
 from .failure_log import read_failure_events
+from .llm_responder import LLMResponder
 from .meaning_layer import meaning_for_gloss
 from .orchestrator import Orchestrator
 from .pipeline import CommunicationPipeline
+from .request_limiter import RequestLimiter
 from .runtime import RecognitionRuntime
 from .text_to_sign import text_to_sign
 
@@ -15,9 +17,11 @@ __all__ = [
 	"CommunicationPipeline",
 	"EvaluationCase",
 	"GlossClipResolver",
+	"LLMResponder",
 	"Orchestrator",
 	"OrchestratorConfig",
 	"RecognitionRuntime",
+	"RequestLimiter",
 	"evaluate_cases",
 	"read_failure_events",
 	"meaning_for_gloss",

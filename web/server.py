@@ -21,8 +21,10 @@ LABEL_MAP_PATH = ROOT / "training_outputs/bilstm_baseline/label_mapping.json"
 sys.path.insert(0, str(ROOT))
 from src.lead_pipeline import (
     GlossClipResolver,
+    LLMResponder,
     Orchestrator,
     OrchestratorConfig,
+    RequestLimiter,
     RecognitionRuntime,
     text_to_sign,
 )
@@ -36,6 +38,8 @@ LABELS = [
 ]
 adapter = None
 runtime = None
+llm_responder = LLMResponder()
+llm_request_limiter = RequestLimiter(limit=20, window_seconds=60)
 with (AVATAR_CLIPS_ROOT / "index.json").open(encoding="utf-8") as file:
     AVATAR_CLIPS = json.load(file)["gloss_to_clip"]
 avatar_resolver = GlossClipResolver(
@@ -70,6 +74,21 @@ def avatar_playback(glosses):
         "clips": clips,
         "unmatched": unmatched,
     }
+
+
+def apply_llm_response(routed, client_ip):
+    if routed["status"] != "accepted":
+        return routed
+    llm_allowed = (
+        not os.environ.get("ISL_LLM_API_KEY")
+        or llm_request_limiter.allow(client_ip)
+    )
+    routed["response_text"] = llm_responder.respond(
+        routed["meaning"],
+        routed["response_text"],
+        allowed=llm_allowed,
+    )
+    return routed
 
 
 def json_response(handler, payload, status=200):
@@ -149,6 +168,7 @@ class AppHandler(BaseHTTPRequestHandler):
             current_runtime = get_runtime()
             prediction = get_adapter().predict(features, mask, timestamp)
             routed = current_runtime.orchestrator.route(prediction)
+            routed = apply_llm_response(routed, self.client_address[0])
             response_glosses = (
                 [routed["meaning"]["source_gloss"]]
                 if routed["status"] == "accepted"
@@ -221,6 +241,7 @@ class AppHandler(BaseHTTPRequestHandler):
         current_runtime = get_runtime()
         prediction = get_adapter().predict(features, mask, timestamp)
         routed = current_runtime.orchestrator.route(prediction)
+        routed = apply_llm_response(routed, self.client_address[0])
         response_glosses = (
             [routed["meaning"]["source_gloss"]]
             if routed["status"] == "accepted"
