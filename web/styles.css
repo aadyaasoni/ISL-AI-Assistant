@@ -70,6 +70,7 @@ textarea { min-width: 0; flex: 1; resize: vertical; border: 1px solid var(--line
 .note strong { font-size: 1rem; }
 .note p { margin-top: 5px; color: var(--muted); font: .78rem/1.4 ui-sans-serif, sans-serif; }
 .failure-panel { margin-top: 18px; padding: 20px 22px; }
+.privacy-note { padding: 0 20px 24px; color: var(--muted); text-align: center; font: .75rem ui-sans-serif, sans-serif; }
 .failure-panel > .muted { margin: 14px 0 8px; }
 .failure-table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font: .8rem ui-sans-serif, sans-serif; text-align: left; }

@@ -56,8 +56,10 @@ with METADATA_PATH.open(newline="", encoding="utf-8") as file:
 SAMPLES_BY_ID = {row["sample_id"]: row for row in SAMPLE_ROWS}
 HAND_MODEL_PATH = ROOT / "models/mediapipe/hand_landmarker.task"
 POSE_MODEL_PATH = ROOT / "models/mediapipe/pose_landmarker_lite.task"
+MAX_UPLOAD_BYTES = 2 * 1024 * 1024
 camera_landmarkers = None
 camera_timestamp_ms = 0
+api_request_limiter = RequestLimiter(limit=60, window_seconds=60)
 
 
 def avatar_playback(glosses):
@@ -148,17 +150,25 @@ class AppHandler(BaseHTTPRequestHandler):
                 )
             return json_response(self, {"events": events})
         if parsed.path == "/api/infer":
+            if not self.check_rate_limit("infer"):
+                return
             return self.infer(parse_qs(parsed.query))
         return self.serve_static(parsed.path)
 
     def do_POST(self):
         path = urlparse(self.path).path
+        if not self.check_upload_size():
+            return
         if path == "/api/frame":
             return self.frame()
         if path == "/api/text_to_sign":
+            if not self.check_rate_limit("text_to_sign"):
+                return
             return self.text_to_sign()
         if path != "/api/infer":
             return json_response(self, {"error": "Not found"}, 404)
+        if not self.check_rate_limit("infer"):
+            return
         try:
             content_length = int(self.headers.get("Content-Length", "0"))
             payload = json.loads(self.rfile.read(content_length))
@@ -184,6 +194,46 @@ class AppHandler(BaseHTTPRequestHandler):
             )
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
             return json_response(self, {"error": str(error)}, 400)
+
+    def check_upload_size(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            json_response(self, {"error": "Invalid Content-Length"}, 400)
+            return False
+        if content_length < 0:
+            json_response(self, {"error": "Invalid Content-Length"}, 400)
+            return False
+        if content_length > MAX_UPLOAD_BYTES:
+            if content_length <= MAX_UPLOAD_BYTES * 2:
+                self.discard_request_body(content_length)
+            else:
+                self.close_connection = True
+            json_response(self, {"error": "Request body is too large"}, 413)
+            return False
+        self.request_content_length = content_length
+        return True
+
+    def discard_request_body(self, content_length):
+        remaining = content_length
+        while remaining:
+            chunk = self.rfile.read(min(65536, remaining))
+            if not chunk:
+                break
+            remaining -= len(chunk)
+
+    def check_rate_limit(self, endpoint):
+        client_id = f"{self.client_address[0]}:{endpoint}"
+        if not api_request_limiter.allow(client_id):
+            if self.command == "POST":
+                self.discard_request_body(self.request_content_length)
+            json_response(
+                self,
+                {"error": "Rate limit exceeded; retry shortly."},
+                429,
+            )
+            return False
+        return True
 
     def text_to_sign(self):
         try:

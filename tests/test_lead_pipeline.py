@@ -163,6 +163,7 @@ class LeadPipelineTests(unittest.TestCase):
         self.assertEqual(events[0]["reason"], "low_confidence")
         self.assertEqual(events[1]["reason"], "unknown_gloss")
         self.assertEqual(events[2]["reason"], "unknown_gloss")
+        self.assertEqual(set(events[0]), {"reason", "gloss", "confidence"})
         self.assertEqual(callbacks, events[:2])
 
     def test_failure_log_config_reads_relative_environment_path(self) -> None:

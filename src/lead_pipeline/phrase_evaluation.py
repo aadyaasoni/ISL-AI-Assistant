@@ -186,10 +186,19 @@ def main() -> None:
     if not output_path.is_absolute():
         output_path = _ROOT / output_path
 
+    with (_ROOT / "avatar/clips/index.json").open(encoding="utf-8") as file:
+        clip_index = json.load(file)["gloss_to_clip"]
+    avatar_resolver = GlossClipResolver(
+        mapping={
+            gloss.strip().lower(): str(_ROOT / "avatar/clips" / filename)
+            for gloss, filename in clip_index.items()
+        },
+        clip_loader=lambda clip_path: clip_path,
+    )
     report = evaluate_phrase_cases(
         PHRASE_EVALUATION_CASES,
         Orchestrator(),
-        GlossClipResolver(mapping={}, clip_loader=lambda clip_path: clip_path),
+        avatar_resolver,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

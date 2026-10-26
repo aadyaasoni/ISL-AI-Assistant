@@ -39,7 +39,15 @@ def main():
         ROOT / "training_outputs/bilstm_baseline/label_mapping.json",
         device="cpu",
     )
-    avatar_resolver = GlossClipResolver({}, lambda path: path, fallback_clip="pending://avatar-assets")
+    with (ROOT / "avatar/clips/index.json").open(encoding="utf-8") as file:
+        clip_index = json.load(file)["gloss_to_clip"]
+    avatar_resolver = GlossClipResolver(
+        {
+            gloss.strip().lower(): str(ROOT / "avatar/clips" / filename)
+            for gloss, filename in clip_index.items()
+        },
+        lambda path: f"/avatar/clips/{Path(path).name}",
+    )
     cases = []
 
     for index, sample_id in enumerate(sample_ids):
@@ -49,7 +57,17 @@ def main():
         with np.load(ROOT / row["processed_file_path"]) as sample:
             prediction = adapter.predict(sample["features"], sample["mask"], float(index))
         result = orchestrator.route(prediction)
-        avatar_clip = avatar_resolver.resolve([prediction["gloss"]])[0]
+        response_gloss = (
+            result["meaning"]["source_gloss"]
+            if result["status"] == "accepted"
+            else "please repeat"
+        )
+        try:
+            avatar_clip = avatar_resolver.resolve([response_gloss])[0]
+            avatar_status = "skeleton-avatar"
+        except KeyError:
+            avatar_clip = None
+            avatar_status = "no_clip"
         cases.append({
             "sample_id": sample_id,
             "expected_gloss": row["label"],
@@ -57,7 +75,8 @@ def main():
             "route_reason": result.get("reason"),
             "prediction": prediction,
             "avatar_clip": avatar_clip,
-            "avatar_status": "pending-assets",
+            "avatar_status": avatar_status,
+            "unmatched_response_glosses": [] if avatar_clip else [response_gloss],
         })
 
     report = {
@@ -66,7 +85,8 @@ def main():
         "failure_events": failures,
         "notes": [
             "This is a reproducible evidence run, not a recorded video.",
-            "Avatar playback remains pending until licensed model and animation assets are available.",
+            "Avatar clips are 2D skeletons derived from extracted landmark samples, not rigged 3D assets.",
+            "Verify the dataset license and redistribution terms before distributing generated clips.",
         ],
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

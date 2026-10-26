@@ -1,5 +1,9 @@
 # ISL Communication Assistant
 
+## Live demo
+
+**Hugging Face Space:** `https://<your-space-name>.hf.space` (placeholder — replace after deployment).
+
 A deployable prototype for a constrained Indian Sign Language (ISL) communication flow:
 
 ```text
@@ -7,22 +11,25 @@ camera frame -> MediaPipe hand/pose landmarks -> BiLSTM gloss prediction
              -> confidence-aware routing -> semantic frame -> response text
 ```
 
-The application provides a browser camera preview, a real-sample inference probe, explicit clarification for uncertain or unmapped glosses, and a recent-failure dashboard. Avatar clip resolution is wired, but playback is **not available**: there are no licensed avatar or sign-animation assets in this repository.
+The application provides a browser camera preview, a real-sample inference probe, explicit clarification for uncertain or unmapped glosses, text-to-sign for supported words, a skeleton avatar, and a recent-failure dashboard.
 
-> **Scope:** this is an 11-class isolated-gloss research/demo prototype, not a general-purpose ISL translator or a production accessibility service. It does not currently translate free-form text or audio into sign language.
+> **Scope:** this is an 11-gloss isolated-sign research/demo prototype, not a general-purpose ISL translator or a production accessibility service. It does not translate continuous signing, arbitrary sentences, or audio.
 
-## Current capabilities
+## What works / what doesn't
 
-- MediaPipe extraction of hand and pose landmarks into the 258-feature / 75-mask model input format.
-- A trained BiLSTM checkpoint and recognition adapter returning gloss, confidence, and timestamp.
-- Confidence thresholding, clarification responses, deterministic meaning frames for the 11 dataset glosses, and bounded conversation state.
-- Append-only JSONL logging of low-confidence and unknown-gloss events, with a browser view of recent events.
-- A separate 25-case phrase meaning/response/avatar-mapping evaluation and the existing 24-sample recognition evaluation.
-- Docker image and Compose configuration for self-hosting; GitHub Actions runs tests and builds the image.
+| Feature | Status |
+|---|---|
+| Camera recognition | Works as an experimental 11-gloss isolated-sign prototype using MediaPipe landmarks and the checked-in BiLSTM. |
+| Meaning and response | Deterministic semantic frames, confidence-aware clarification, and bounded conversation history. |
+| Skeleton avatar | Plays derived 2D landmark stick-figure clips for the supported glosses. This is not a rigged 3D avatar. |
+| Text-to-sign | Deterministically maps supported words to glosses and plays matching clips; unmatched words are reported. |
+| Optional LLM | Disabled unless `ISL_LLM_API_KEY` is configured; errors/timeouts fall back to the deterministic responder. |
+| Evaluation | Separate 24-sample recognition run and phrase evaluation. Signer-independent performance is unverified. |
+| Deployment | Docker and Hugging Face Spaces instructions are in [`docs/DEPLOY.md`](docs/DEPLOY.md). |
 
 ## Model evaluation
 
-The checked-in test split contains 44 samples. Its reported macro-F1 is **0.685** and weighted F1 is **0.717**. The `97. dry` class has no samples in that original test split and is excluded from the score. See [`training_outputs/bilstm_baseline/test_evaluation.json`](training_outputs/bilstm_baseline/test_evaluation.json) and [`reports/real_sample_validation.md`](reports/real_sample_validation.md) for per-class results and caveats. These figures describe this fixed split, not expected performance on new signers or environments.
+The checked-in test split contains 44 samples. Its reported macro-F1 is **0.685** and weighted F1 is **0.717**. The `97. dry` gloss has no test examples and is excluded from the reported test macro-F1. Signer IDs are unavailable, so signer-independent evaluation cannot be verified. See [`training_outputs/bilstm_baseline/test_evaluation.json`](training_outputs/bilstm_baseline/test_evaluation.json) and [`reports/real_sample_validation.md`](reports/real_sample_validation.md) for per-class results and caveats. These figures describe this fixed split, not expected performance on new signers or environments.
 
 ## Run locally
 
@@ -84,7 +91,7 @@ Run the separate phrase evaluation:
 python -m src.lead_pipeline.phrase_evaluation
 ```
 
-The phrase report is written to `reports/phrase_evaluation.json`. It distinguishes misrecognition, meaning ambiguity, and avatar mapping gaps. Because the avatar manifest is intentionally pending, missing clips remain failures; the evaluation does not mark hypothetical assets as available.
+The phrase report is written to `reports/phrase_evaluation.json`. It distinguishes misrecognition, meaning ambiguity, and avatar mapping gaps using the checked-in skeleton clip index; unsupported glosses remain failures.
 
 Capture sample-based demo evidence with:
 
@@ -106,17 +113,18 @@ See [`doc/ARCHITECTURE.md`](doc/ARCHITECTURE.md) for the runtime boundaries and 
 - `GET /api/infer?sample_id=...` — run inference on a processed sample.
 - `POST /api/frame` — extract one frame's landmarks from a JSON base64 image.
 - `POST /api/infer` — infer from JSON `features`, `mask`, and optional `timestamp`.
+- `POST /api/text_to_sign` — map text to supported glosses and unmatched words.
 
-Camera frames are processed by the local service. Do not expose this prototype publicly without adding the authentication, request limits, privacy controls, and operational monitoring appropriate for your deployment.
+Camera frames are processed into landmarks and are not stored. Request bodies are size-capped, and inference/text-to-sign endpoints are rate-limited.
 
 ## Known limitations and honest next steps
 
-- **Avatar playback:** no model or sign clips are included. A source and redistribution license must be confirmed before adding assets or enabling playback. See [`avatar/README.md`](avatar/README.md) and [`avatar/asset_manifest.json`](avatar/asset_manifest.json).
-- **Conversation model:** responses are deterministic templates. No external LLM is configured; enabling one requires a provider decision, credentials, and explicit handling of conversation data.
-- **Language coverage:** only 11 isolated adjective glosses have meaning frames. There is no validated continuous-sign grammar, natural-language ISL sentence model, text-to-sign system, or microphone input.
+- **Avatar:** skeleton clips are derived from INCLUDE dataset landmarks; the dataset license and redistribution rights require verification. A rigged 3D avatar remains future work. See [`avatar/README.md`](avatar/README.md) and [`avatar/ATTRIBUTION.md`](avatar/ATTRIBUTION.md).
+- **Language coverage:** text-to-sign only maps individual supported words and the label synonyms in this repository. It does not provide a validated continuous-sign grammar or arbitrary natural-language ISL translation; there is no microphone input.
+- **Optional LLM:** no key is required. If configured, the responder sends only the semantic frame to the configured OpenAI-compatible endpoint; do not send sensitive content.
 - **Landmarks:** current model input uses hands and pose, not face/non-manual markers. Landmark extraction and the trained model are an experimental baseline.
 - **Dataset split:** signer IDs are unavailable in the supplied metadata, so signer-independent separation cannot be verified. The `dry` class has zero test support.
 - **Demo:** record a human-operated backup demo separately; generated JSON evidence is not video.
-- **Hosted deployment:** Docker files provide a portable deployment target. A public instance still needs a hosting account, HTTPS domain, and deployment-specific secrets/configuration; this repository does not claim a live hosted service.
+- **Hosted deployment:** this repository does not claim a live hosted service until the placeholder above is replaced with the deployed Space URL.
 
 Dataset/video and third-party model asset terms remain subject to their respective providers' licenses. Review those terms before redistribution or commercial use.

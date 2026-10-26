@@ -212,7 +212,6 @@ async function loadFailureEvents() {
         event.reason,
         event.gloss,
         `${(Number(event.confidence) * 100).toFixed(1)}%`,
-        new Date(Number(event.timestamp) * 1000).toLocaleString(),
       ].forEach((value) => {
         const cell = document.createElement("td");
         cell.textContent = value;
