@@ -35,14 +35,46 @@
       </article>
     </section>
 
+    <section class="avatar-panel panel" aria-labelledby="avatar-heading">
+      <div class="panel-heading">
+        <div><p class="eyebrow">Response playback</p><h2 id="avatar-heading">Skeleton avatar</h2></div>
+        <span class="signal">2D LANDMARKS</span>
+      </div>
+      <canvas id="avatar-canvas" width="640" height="360" aria-label="Animated stick figure for the response sign"></canvas>
+      <div class="avatar-controls">
+        <button id="avatar-play" class="button button-primary" type="button">Play</button>
+        <button id="avatar-pause" class="button button-primary" type="button">Pause</button>
+        <label for="avatar-speed">Speed</label>
+        <select id="avatar-speed" aria-label="Avatar playback speed">
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.5">1.5×</option>
+        </select>
+      </div>
+      <p id="avatar-note" class="muted" aria-live="polite">Run a sample to play its response gloss.</p>
+    </section>
+
     <section class="control-strip panel">
       <div><p class="eyebrow">Runtime probe</p><h2>Run a real sample</h2><p class="muted">Uses the merged BiLSTM checkpoint and the production routing contract.</p></div>
       <div class="probe-controls"><select id="sample-select" aria-label="Choose a real landmark sample"></select><button id="run-sample" class="button button-accent">Run inference</button></div>
     </section>
 
+    <section class="text-sign-panel panel" aria-labelledby="text-sign-heading">
+      <div>
+        <p class="eyebrow">Text to sign</p>
+        <h2 id="text-sign-heading">Hearing user</h2>
+        <p class="muted">Enter text to play clips for supported words. This is deterministic and does not use an LLM.</p>
+      </div>
+      <div class="text-sign-controls">
+        <textarea id="hearing-text" rows="2" aria-label="Text spoken by a hearing user" placeholder="Try: loud and happy"></textarea>
+        <button id="text-to-sign" class="button button-accent" type="button">Play text as signs</button>
+      </div>
+      <p id="text-sign-unmatched" class="muted" aria-live="polite">Unmatched words will be listed here.</p>
+    </section>
+
     <section class="footer-grid">
       <article class="note"><span class="note-index">01</span><div><strong>Recognition runtime</strong><p>Camera frames are processed into hand and pose landmarks before model inference.</p></div></article>
-      <article class="note"><span class="note-index">02</span><div><strong>Avatar readiness</strong><p>No licensed model or sign clips are committed. Unsupported glosses stay explicit.</p></div></article>
+      <article class="note"><span class="note-index">02</span><div><strong>Avatar readiness</strong><p>Stick-figure clips use extracted landmarks. Unsupported glosses stay explicit; a rigged 3D avatar is future work.</p></div></article>
     </section>
 
     <section class="failure-panel panel" aria-labelledby="failure-heading">
@@ -53,12 +85,13 @@
       <p id="failure-note" class="muted">Loading logged clarification events.</p>
       <div class="failure-table-wrap">
         <table>
-          <thead><tr><th>Reason</th><th>Gloss</th><th>Confidence</th><th>Timestamp</th></tr></thead>
+          <thead><tr><th>Fallback reason</th><th>Gloss</th><th>Confidence</th></tr></thead>
           <tbody id="failure-events"></tbody>
         </table>
       </div>
     </section>
   </main>
+  <footer class="privacy-note">Camera frames are processed into landmarks and are not stored.</footer>
   <script src="/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,1 @@
+services: [{type: web, name: isl-communication-assistant, runtime: docker, plan: starter, dockerfilePath: ./Dockerfile, healthCheckPath: /api/health}]

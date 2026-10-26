@@ -163,17 +163,26 @@ class LeadPipelineTests(unittest.TestCase):
         self.assertEqual(events[0]["reason"], "low_confidence")
         self.assertEqual(events[1]["reason"], "unknown_gloss")
         self.assertEqual(events[2]["reason"], "unknown_gloss")
+        self.assertEqual(set(events[0]), {"reason", "gloss", "confidence"})
         self.assertEqual(callbacks, events[:2])
-
-    def test_failure_log_config_rejects_absolute_paths(self) -> None:
-        with self.assertRaisesRegex(ValueError, "must be relative"):
-            OrchestratorConfig(failure_log_path=Path.cwd() / "events.jsonl")
 
     def test_failure_log_config_reads_relative_environment_path(self) -> None:
         with patch.dict(os.environ, {"ISL_FAILURE_LOG_PATH": "tmp/events.jsonl"}):
             config = OrchestratorConfig()
 
         self.assertEqual(config.failure_log_path, Path("tmp/events.jsonl"))
+
+    def test_failure_log_config_reads_absolute_container_path(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"ISL_FAILURE_LOG_PATH": str(Path.cwd() / "tmp" / "events.jsonl")},
+        ):
+            config = OrchestratorConfig()
+
+        self.assertEqual(
+            config.failure_log_path,
+            Path.cwd() / "tmp" / "events.jsonl",
+        )
 
     def test_failure_events_reader_returns_recent_jsonl_records(self) -> None:
         with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:

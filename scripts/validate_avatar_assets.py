@@ -20,8 +20,37 @@ def validate_manifest(manifest_path: Path) -> list[str]:
             errors.append("pending-assets manifest must not claim a license")
         return errors
 
+    if status == "skeleton-avatar":
+        clip_index = manifest.get("clip_index")
+        index_path = (asset_root / clip_index).resolve() if isinstance(clip_index, str) else None
+        if (
+            index_path is None
+            or asset_root.resolve() not in index_path.parents
+            or not index_path.is_file()
+        ):
+            errors.append("skeleton-avatar manifest requires an existing clip index")
+        else:
+            with index_path.open(encoding="utf-8") as file:
+                index = json.load(file)
+            clips = index.get("gloss_to_clip")
+            if not isinstance(clips, dict):
+                errors.append("skeleton-avatar clip index requires a gloss_to_clip mapping")
+            else:
+                supported = manifest.get("supported_glosses")
+                if not isinstance(supported, list) or set(supported) != set(clips):
+                    errors.append("skeleton-avatar supported glosses must match the clip index")
+                for filename in clips.values():
+                    clip_path = (asset_root / "clips" / filename).resolve()
+                    if asset_root.resolve() not in clip_path.parents or not clip_path.is_file():
+                        errors.append(f"missing or invalid skeleton clip: {filename}")
+        if manifest.get("model") is not None or manifest.get("animations"):
+            errors.append("skeleton-avatar manifest must not claim rigged 3D assets")
+        if manifest.get("license") is not None:
+            errors.append("skeleton-avatar manifest must not claim a dataset license")
+        return errors
+
     if status != "ready":
-        errors.append("status must be either pending-assets or ready")
+        errors.append("status must be pending-assets, skeleton-avatar, or ready")
         return errors
 
     model = manifest.get("model")

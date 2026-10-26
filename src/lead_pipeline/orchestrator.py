@@ -30,7 +30,7 @@ class Orchestrator:
         timestamp = float(prediction["timestamp"])
 
         if confidence < self.confidence_threshold:
-            self._record_failure("low_confidence", gloss, confidence, timestamp)
+            self._record_failure("low_confidence", gloss, confidence)
             return {
                 "status": "clarification_required",
                 "reason": "low_confidence",
@@ -41,7 +41,7 @@ class Orchestrator:
 
         meaning = meaning_for_gloss(gloss)
         if meaning["intent"] == "unknown":
-            self._record_failure("unknown_gloss", gloss, confidence, timestamp)
+            self._record_failure("unknown_gloss", gloss, confidence)
             return {
                 "status": "clarification_required",
                 "reason": "unknown_gloss",
@@ -59,12 +59,11 @@ class Orchestrator:
             "timestamp": timestamp,
         }
 
-    def _record_failure(self, reason: str, gloss: str, confidence: float, timestamp: float) -> None:
+    def _record_failure(self, reason: str, gloss: str, confidence: float) -> None:
         event = {
             "reason": reason,
             "gloss": gloss,
             "confidence": confidence,
-            "timestamp": timestamp,
         }
         self.failure_events.append(event)
         log_path = self.config.failure_log_path

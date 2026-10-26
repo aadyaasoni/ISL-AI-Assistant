@@ -10,7 +10,3 @@ class OrchestratorConfig:
             os.environ.get("ISL_FAILURE_LOG_PATH", "reports/failure_events.jsonl")
         )
     )
-
-    def __post_init__(self) -> None:
-        if self.failure_log_path.is_absolute():
-            raise ValueError("failure_log_path must be relative")

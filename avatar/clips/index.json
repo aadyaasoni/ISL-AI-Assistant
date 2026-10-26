@@ -1,0 +1,15 @@
+{
+  "gloss_to_clip": {
+    "1. loud": "1._loud.json",
+    "2. quiet": "2._quiet.json",
+    "3. happy": "3._happy.json",
+    "78. long": "78._long.json",
+    "79. short": "79._short.json",
+    "83. big large": "83._big_large.json",
+    "84. small little": "84._small_little.json",
+    "87. hot": "87._hot.json",
+    "91. new": "91._new.json",
+    "94. good": "94._good.json",
+    "97. dry": "97._dry.json"
+  }
+}
