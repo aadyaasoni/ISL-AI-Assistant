@@ -19,11 +19,11 @@ jobs:
           python-version: "3.10"
           cache: pip
           cache-dependency-path: requirements-training.txt
-      - name: Install CPU dependencies
+      - name: Install application and training dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.8.0
-          python -m pip install -r requirements-training.txt pytest
+          python -m pip install -r requirements-preprocessing.txt -r requirements-training.txt pytest
       - name: Run tests
         run: python -m pytest -q
       - name: Build deployment image
