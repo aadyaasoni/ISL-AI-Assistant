@@ -41,8 +41,22 @@
     </section>
 
     <section class="footer-grid">
-      <article class="note"><span class="note-index">01</span><div><strong>Recognition runtime</strong><p>Camera preview is live. Landmark extraction remains the next browser-to-model handoff.</p></div></article>
+      <article class="note"><span class="note-index">01</span><div><strong>Recognition runtime</strong><p>Camera frames are processed into hand and pose landmarks before model inference.</p></div></article>
       <article class="note"><span class="note-index">02</span><div><strong>Avatar readiness</strong><p>No licensed model or sign clips are committed. Unsupported glosses stay explicit.</p></div></article>
+    </section>
+
+    <section class="failure-panel panel" aria-labelledby="failure-heading">
+      <div class="panel-heading">
+        <div><p class="eyebrow">Failure analysis</p><h2 id="failure-heading">Recent clarifications</h2></div>
+        <button id="refresh-failures" class="button button-primary" type="button">Refresh</button>
+      </div>
+      <p id="failure-note" class="muted">Loading logged clarification events.</p>
+      <div class="failure-table-wrap">
+        <table>
+          <thead><tr><th>Reason</th><th>Gloss</th><th>Confidence</th><th>Timestamp</th></tr></thead>
+          <tbody id="failure-events"></tbody>
+        </table>
+      </div>
     </section>
   </main>
   <script src="/app.js"></script>

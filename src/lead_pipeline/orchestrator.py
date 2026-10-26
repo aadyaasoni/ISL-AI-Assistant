@@ -1,6 +1,9 @@
+import json
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 from .conversation_agent import ConversationAgent
+from .config import OrchestratorConfig
 from .meaning_layer import meaning_for_gloss
 
 
@@ -10,12 +13,14 @@ class Orchestrator:
         confidence_threshold: float = 0.60,
         conversation_agent: Optional[ConversationAgent] = None,
         failure_logger: Optional[Callable[[Dict[str, Any]], None]] = None,
+        config: Optional[OrchestratorConfig] = None,
     ) -> None:
         if not 0 <= confidence_threshold <= 1:
             raise ValueError("confidence_threshold must be between 0 and 1")
         self.confidence_threshold = confidence_threshold
         self.conversation_agent = conversation_agent or ConversationAgent()
         self.failure_logger = failure_logger
+        self.config = config or OrchestratorConfig()
         self.failure_events = []
 
     def route(self, prediction: dict[str, Any]) -> dict[str, Any]:
@@ -62,6 +67,10 @@ class Orchestrator:
             "timestamp": timestamp,
         }
         self.failure_events.append(event)
+        log_path = self.config.failure_log_path
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with log_path.open("a", encoding="utf-8") as log_file:
+            log_file.write(json.dumps(event) + "\n")
         if self.failure_logger is not None:
             self.failure_logger(event)
 

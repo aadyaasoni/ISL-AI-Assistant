@@ -1,7 +1,9 @@
 import csv
 import base64
 import json
+import logging
 import mimetypes
+import os
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -18,10 +20,19 @@ LABEL_MAP_PATH = ROOT / "training_outputs/bilstm_baseline/label_mapping.json"
 sys.path.insert(0, str(ROOT))
 from scripts.recognition_adapter import RecognitionAdapter
 from scripts.extract_landmarks import build_landmarkers, frame_features
-from src.lead_pipeline import GlossClipResolver, RecognitionRuntime
+from src.lead_pipeline import (
+    GlossClipResolver,
+    Orchestrator,
+    OrchestratorConfig,
+    RecognitionRuntime,
+)
+from src.lead_pipeline.failure_log import read_failure_events
 
 adapter = RecognitionAdapter(CHECKPOINT_PATH, LABEL_MAP_PATH, device="cpu")
-runtime = RecognitionRuntime(adapter)
+runtime = RecognitionRuntime(
+    adapter,
+    orchestrator=Orchestrator(config=OrchestratorConfig()),
+)
 avatar_resolver = GlossClipResolver(
     mapping={},
     clip_loader=lambda clip_path: clip_path,
@@ -62,6 +73,19 @@ class AppHandler(BaseHTTPRequestHandler):
                     ]
                 },
             )
+        if parsed.path == "/api/failures":
+            try:
+                events = read_failure_events(
+                    runtime.orchestrator.config.failure_log_path
+                )
+            except (OSError, json.JSONDecodeError):
+                logging.exception("Could not read the failure-event log")
+                return json_response(
+                    self,
+                    {"error": "Failure log is unavailable."},
+                    503,
+                )
+            return json_response(self, {"events": events})
         if parsed.path == "/api/infer":
             return self.infer(parse_qs(parsed.query))
         return self.serve_static(parsed.path)
@@ -166,9 +190,10 @@ class AppHandler(BaseHTTPRequestHandler):
 
 
 def main():
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
-    server = ThreadingHTTPServer(("127.0.0.1", port), AppHandler)
-    print(f"ISL Communication Assistant: http://127.0.0.1:{port}")
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", "8000"))
+    host = os.environ.get("HOST", "127.0.0.1")
+    server = ThreadingHTTPServer((host, port), AppHandler)
+    print(f"ISL Communication Assistant: http://{host}:{port}")
     server.serve_forever()
 
 

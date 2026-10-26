@@ -4,6 +4,7 @@ const cameraToggle = document.querySelector("#camera-toggle");
 const systemStatus = document.querySelector("#system-status");
 const sampleSelect = document.querySelector("#sample-select");
 const runSample = document.querySelector("#run-sample");
+const refreshFailures = document.querySelector("#refresh-failures");
 let stream;
 let captureTimer;
 let frameCanvas;
@@ -28,10 +29,12 @@ function showResult(payload) {
   const badge = document.querySelector("#confidence-badge");
   badge.textContent = route.status === "accepted" ? "Accepted" : "Clarification";
   badge.className = `confidence-badge ${route.status === "accepted" ? "is-good" : "is-warn"}`;
+  loadFailureEvents();
 }
 
 async function loadSamples() {
   const response = await fetch("/api/samples");
+  if (!response.ok) throw new Error("Sample list unavailable");
   const data = await response.json();
   data.samples.slice(0, 12).forEach((sample) => {
     const option = document.createElement("option");
@@ -39,6 +42,34 @@ async function loadSamples() {
     option.textContent = `${sample.label} · ${sample.sample_id}`;
     sampleSelect.append(option);
   });
+}
+
+async function loadFailureEvents() {
+  const body = document.querySelector("#failure-events");
+  const note = document.querySelector("#failure-note");
+  try {
+    const response = await fetch("/api/failures");
+    if (!response.ok) throw new Error("Failure log unavailable");
+    const data = await response.json();
+    body.replaceChildren();
+    data.events.slice(-100).reverse().forEach((event) => {
+      const row = document.createElement("tr");
+      [
+        event.reason,
+        event.gloss,
+        `${(Number(event.confidence) * 100).toFixed(1)}%`,
+        new Date(Number(event.timestamp) * 1000).toLocaleString(),
+      ].forEach((value) => {
+        const cell = document.createElement("td");
+        cell.textContent = value;
+        row.append(cell);
+      });
+      body.append(row);
+    });
+    note.textContent = data.events.length ? `Showing the latest ${data.events.length} event(s).` : "No clarification events logged yet.";
+  } catch (error) {
+    note.textContent = error.message;
+  }
 }
 
 async function checkHealth() {
@@ -110,6 +141,8 @@ runSample.addEventListener("click", async () => {
   }
 });
 
+refreshFailures.addEventListener("click", loadFailureEvents);
+
 cameraToggle.addEventListener("click", async () => {
   if (stream) {
     stream.getTracks().forEach((track) => track.stop());
@@ -136,4 +169,4 @@ cameraToggle.addEventListener("click", async () => {
   }
 });
 
-Promise.all([checkHealth(), loadSamples()]);
+Promise.all([checkHealth(), loadSamples(), loadFailureEvents()]);
