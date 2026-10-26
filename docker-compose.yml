@@ -2,14 +2,9 @@ services:
   assistant:
     build: .
     ports:
-      - "8000:8000"
+      - "7860:7860"
     environment:
       HOST: 0.0.0.0
-      PORT: 8000
-      ISL_FAILURE_LOG_PATH: reports/failure_events.jsonl
-    volumes:
-      - isl-reports:/app/reports
+      PORT: 7860
+      ISL_FAILURE_LOG_PATH: /tmp/failure_events.jsonl
     restart: unless-stopped
-
-volumes:
-  isl-reports:

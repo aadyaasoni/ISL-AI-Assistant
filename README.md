@@ -56,15 +56,17 @@ Open <http://127.0.0.1:8000>. Allow camera access when prompted. The browser cam
 
 The server supports `HOST` and `PORT` environment variables. It binds to loopback by default for local use; container configuration sets `HOST=0.0.0.0`.
 
+The runtime image includes `training_outputs/bilstm_baseline/best_model.pt`, its label map, both MediaPipe task models, test metadata, and the extracted landmark samples needed by the sample inference endpoint. These tracked files are not excluded by `.dockerignore`.
+
 ## Deploy with Docker
 
-Requirements: Docker Engine and the Docker Compose plugin. The first build downloads the pinned Python dependencies and CPU-only PyTorch; expect a large image and allow several minutes for the initial build.
+Requirements: Docker Engine and the Docker Compose plugin. The first build downloads the pinned Python runtime dependencies and CPU-only PyTorch; expect a large image and allow several minutes for the initial build.
 
 ```bash
 docker compose up --build
 ```
 
-Open <http://localhost:8000>. Compose persists the append-only failure log in the `isl-reports` named volume. To use a different log location, set `ISL_FAILURE_LOG_PATH` to a **relative** path in the container. For a cloud container host, build from this repository, expose port `8000`, and configure the host's HTTPS endpoint so browser camera access works.
+Open <http://localhost:7860>. The failure log defaults to `/tmp/failure_events.jsonl` inside the container and is ephemeral. Set `ISL_FAILURE_LOG_PATH` to a writable path to change it. For a cloud container host, build from this repository, expose port `7860`, and configure the host's HTTPS endpoint so browser camera access works.
 
 Check readiness at `/api/health`. The container health check uses the same endpoint. The process runs as a non-root user.
 

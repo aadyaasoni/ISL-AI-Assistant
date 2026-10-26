@@ -6,9 +6,9 @@ import numpy as np
 import torch
 
 try:
-    from .train_bilstm import BiLSTMClassifier
+    from .bilstm_model import BiLSTMClassifier
 except ImportError:
-    from train_bilstm import BiLSTMClassifier
+    from bilstm_model import BiLSTMClassifier
 
 
 class RecognitionAdapter:

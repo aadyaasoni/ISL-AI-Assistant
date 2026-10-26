@@ -18,8 +18,6 @@ CHECKPOINT_PATH = ROOT / "training_outputs/bilstm_baseline/best_model.pt"
 LABEL_MAP_PATH = ROOT / "training_outputs/bilstm_baseline/label_mapping.json"
 
 sys.path.insert(0, str(ROOT))
-from scripts.recognition_adapter import RecognitionAdapter
-from scripts.extract_landmarks import build_landmarkers, frame_features
 from src.lead_pipeline import (
     GlossClipResolver,
     Orchestrator,
@@ -28,11 +26,14 @@ from src.lead_pipeline import (
 )
 from src.lead_pipeline.failure_log import read_failure_events
 
-adapter = RecognitionAdapter(CHECKPOINT_PATH, LABEL_MAP_PATH, device="cpu")
-runtime = RecognitionRuntime(
-    adapter,
-    orchestrator=Orchestrator(config=OrchestratorConfig()),
-)
+with LABEL_MAP_PATH.open(encoding="utf-8") as file:
+    LABEL_TO_INDEX = json.load(file)
+LABELS = [
+    label
+    for label, _ in sorted(LABEL_TO_INDEX.items(), key=lambda item: item[1])
+]
+adapter = None
+runtime = None
 avatar_resolver = GlossClipResolver(
     mapping={},
     clip_loader=lambda clip_path: clip_path,
@@ -58,11 +59,30 @@ def json_response(handler, payload, status=200):
     handler.wfile.write(body)
 
 
+def get_adapter():
+    global adapter
+    if adapter is None:
+        from scripts.recognition_adapter import RecognitionAdapter
+
+        adapter = RecognitionAdapter(CHECKPOINT_PATH, LABEL_MAP_PATH, device="cpu")
+    return adapter
+
+
+def get_runtime():
+    global runtime
+    if runtime is None:
+        runtime = RecognitionRuntime(
+            get_adapter(),
+            orchestrator=Orchestrator(config=OrchestratorConfig()),
+        )
+    return runtime
+
+
 class AppHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/api/health":
-            return json_response(self, {"status": "ready", "labels": len(adapter.labels)})
+            return json_response(self, {"status": "ready", "labels": len(LABELS)})
         if parsed.path == "/api/samples":
             return json_response(
                 self,
@@ -76,7 +96,7 @@ class AppHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/failures":
             try:
                 events = read_failure_events(
-                    runtime.orchestrator.config.failure_log_path
+                    OrchestratorConfig().failure_log_path
                 )
             except (OSError, json.JSONDecodeError):
                 logging.exception("Could not read the failure-event log")
@@ -102,8 +122,9 @@ class AppHandler(BaseHTTPRequestHandler):
             features = np.asarray(payload["features"], dtype=np.float32)
             mask = np.asarray(payload["mask"], dtype=np.float32)
             timestamp = float(payload.get("timestamp", 0.0))
-            prediction = adapter.predict(features, mask, timestamp)
-            routed = runtime.orchestrator.route(prediction)
+            current_runtime = get_runtime()
+            prediction = get_adapter().predict(features, mask, timestamp)
+            routed = current_runtime.orchestrator.route(prediction)
             avatar_clip = avatar_resolver.resolve([prediction["gloss"]])[0]
             return json_response(
                 self,
@@ -121,6 +142,7 @@ class AppHandler(BaseHTTPRequestHandler):
         try:
             import cv2
             import mediapipe as mp
+            from scripts.extract_landmarks import build_landmarkers, frame_features
 
             content_length = int(self.headers.get("Content-Length", "0"))
             payload = json.loads(self.rfile.read(content_length))
@@ -158,8 +180,9 @@ class AppHandler(BaseHTTPRequestHandler):
             features = sample["features"]
             mask = sample["mask"]
         timestamp = 0.0
-        prediction = adapter.predict(features, mask, timestamp)
-        routed = runtime.orchestrator.route(prediction)
+        current_runtime = get_runtime()
+        prediction = get_adapter().predict(features, mask, timestamp)
+        routed = current_runtime.orchestrator.route(prediction)
         avatar_clip = avatar_resolver.resolve([prediction["gloss"]])[0]
         return json_response(
             self,
@@ -190,7 +213,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
 
 def main():
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", "8000"))
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", "7860"))
     host = os.environ.get("HOST", "127.0.0.1")
     server = ThreadingHTTPServer((host, port), AppHandler)
     print(f"ISL Communication Assistant: http://{host}:{port}")
