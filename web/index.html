@@ -3,95 +3,142 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ISL Communication Assistant</title>
+  <meta name="theme-color" content="#10151d">
+  <title>Signa — ISL communication assistant</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <main class="shell">
     <header class="topbar">
-      <div>
-        <p class="eyebrow">ISL / LIVE BRIDGE</p>
-        <h1>Communication assistant</h1>
-      </div>
-      <div class="status-pill"><span class="status-dot"></span><span id="system-status">Connecting</span></div>
+      <a class="brand" href="/" aria-label="Signa home">
+        <span class="brand-mark" aria-hidden="true">S</span>
+        <span>signa</span>
+      </a>
+      <p class="header-description">A small bridge for everyday communication in Indian Sign Language.</p>
+      <div class="status-pill"><span class="status-dot"></span><span id="system-status">Connecting…</span></div>
     </header>
 
-    <section class="hero-grid">
-      <article class="camera-panel panel">
-        <div class="panel-heading"><div><p class="eyebrow">Input</p><h2>Camera preview</h2></div><span class="signal">LOCAL</span></div>
-        <div class="camera-frame">
-          <video id="camera" autoplay muted playsinline></video>
-          <div id="camera-empty" class="camera-empty"><span class="camera-mark">◌</span><strong>Camera is ready to connect</strong><span>Preview stays in your browser.</span></div>
-          <div class="scanline"></div>
+    <section class="workspace" aria-label="Sign language conversation">
+      <article class="panel sign-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Your side</p>
+            <h1>You sign</h1>
+          </div>
         </div>
-        <div class="camera-actions"><button id="camera-toggle" class="button button-primary">Enable camera</button><span id="camera-note">Frames stay local and are sampled into a short sequence.</span></div>
+        <div class="camera-frame" id="camera-frame">
+          <video id="camera" autoplay muted playsinline aria-label="Mirrored live camera preview"></video>
+          <div id="camera-empty" class="camera-empty">
+            <span class="camera-icon" aria-hidden="true">◉</span>
+            <strong>Your camera preview will appear here</strong>
+            <span>Nothing is recorded or stored.</span>
+          </div>
+          <div class="camera-overlay"><span class="live-dot"></span> LIVE PREVIEW</div>
+        </div>
+        <div class="camera-controls">
+          <div class="button-row">
+            <button id="camera-enable" class="button button-primary" type="button">Enable camera</button>
+            <button id="camera-stop" class="button button-secondary" type="button" hidden>Stop camera</button>
+          </div>
+          <p id="camera-note" class="helper-text" aria-live="polite">Camera is off. Enable it when you're ready to sign.</p>
+        </div>
+
+        <div class="sample-fallback">
+          <label for="sample-select">Try a recorded sample</label>
+          <div class="sample-controls">
+            <select id="sample-select" aria-label="Try a recorded sign sample"></select>
+            <button id="run-sample" class="button button-secondary" type="button">Try sample</button>
+          </div>
+        </div>
       </article>
 
-      <article class="result-panel panel">
-        <div class="panel-heading"><div><p class="eyebrow">Recognition</p><h2>Latest meaning</h2></div><span id="confidence-badge" class="confidence-badge">Waiting</span></div>
-        <div class="gloss-block"><span class="label">Gloss</span><strong id="gloss">—</strong><div class="confidence-track"><span id="confidence-fill"></span></div><div class="confidence-row"><span>Confidence</span><strong id="confidence">—</strong></div></div>
-        <div class="response-block"><span class="label">Conversation response</span><p id="response">Choose a real landmark sample to run the checkpoint.</p></div>
-        <div class="meta-grid"><div><span class="label">Timestamp</span><strong id="timestamp">—</strong></div><div><span class="label">Avatar clip</span><strong id="avatar-status">Pending assets</strong></div></div>
+      <article class="panel reply-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Your assistant</p>
+            <h2>Assistant replies</h2>
+          </div>
+          <span id="confidence-badge" class="confidence-badge">Ready</span>
+        </div>
+        <div class="avatar-stage">
+          <canvas id="avatar-canvas" width="640" height="420" aria-label="Upper-body skeleton sign playback"></canvas>
+          <p id="avatar-caption" class="avatar-caption" aria-live="polite">Your sign will appear here</p>
+          <p id="avatar-note" class="avatar-note">The assistant's sign will play here.</p>
+          <div class="avatar-controls">
+            <button id="avatar-play" class="icon-button" type="button" aria-label="Play sign again" title="Play sign again">Play</button>
+            <button id="avatar-pause" class="icon-button" type="button" aria-label="Pause sign" title="Pause sign">Pause</button>
+            <label for="avatar-speed">Speed</label>
+            <select id="avatar-speed" aria-label="Avatar playback speed">
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="1.5">1.5×</option>
+            </select>
+          </div>
+        </div>
+        <div class="reply-copy">
+          <p class="eyebrow">In conversation</p>
+          <p id="response" class="response-text" aria-live="polite">Say hello with a sign to get started.</p>
+          <div class="recognition-summary">
+            <div>
+              <span class="label">Recognized sign</span>
+              <strong id="gloss">—</strong>
+            </div>
+            <div>
+              <span class="label">Confidence <span class="info-tip" title="How certain the model is about the sign it recognized." aria-label="Confidence means how certain the model is about its guess.">i</span></span>
+              <strong id="confidence">—</strong>
+            </div>
+          </div>
+          <div class="confidence-track" aria-hidden="true"><span id="confidence-fill"></span></div>
+          <p class="clarification-hint"><span class="info-tip" title="When the model is unsure, the assistant asks you to sign again instead of guessing." aria-label="Clarification means the assistant asks you to sign again when it is unsure.">i</span> If a sign is unclear, the assistant will ask you to repeat it.</p>
+        </div>
       </article>
     </section>
 
-    <section class="avatar-panel panel" aria-labelledby="avatar-heading">
-      <div class="panel-heading">
-        <div><p class="eyebrow">Response playback</p><h2 id="avatar-heading">Skeleton avatar</h2></div>
-        <span class="signal">2D LANDMARKS</span>
-      </div>
-      <canvas id="avatar-canvas" width="640" height="360" aria-label="Animated stick figure for the response sign"></canvas>
-      <div class="avatar-controls">
-        <button id="avatar-play" class="button button-primary" type="button">Play</button>
-        <button id="avatar-pause" class="button button-primary" type="button">Pause</button>
-        <label for="avatar-speed">Speed</label>
-        <select id="avatar-speed" aria-label="Avatar playback speed">
-          <option value="0.5">0.5×</option>
-          <option value="1" selected>1×</option>
-          <option value="1.5">1.5×</option>
-        </select>
-      </div>
-      <p id="avatar-note" class="muted" aria-live="polite">Run a sample to play its response gloss.</p>
-    </section>
-
-    <section class="control-strip panel">
-      <div><p class="eyebrow">Runtime probe</p><h2>Run a real sample</h2><p class="muted">Uses the merged BiLSTM checkpoint and the production routing contract.</p></div>
-      <div class="probe-controls"><select id="sample-select" aria-label="Choose a real landmark sample"></select><button id="run-sample" class="button button-accent">Run inference</button></div>
-    </section>
-
-    <section class="text-sign-panel panel" aria-labelledby="text-sign-heading">
-      <div>
-        <p class="eyebrow">Text to sign</p>
-        <h2 id="text-sign-heading">Hearing user</h2>
-        <p class="muted">Enter text to play clips for supported words. This is deterministic and does not use an LLM.</p>
+    <section class="panel type-panel" aria-labelledby="type-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">For hearing users</p>
+          <h2 id="type-heading">Type to sign</h2>
+        </div>
+        <p class="section-description">Type a supported word and Signa will play its sign.</p>
       </div>
       <div class="text-sign-controls">
-        <textarea id="hearing-text" rows="2" aria-label="Text spoken by a hearing user" placeholder="Try: loud and happy"></textarea>
-        <button id="text-to-sign" class="button button-accent" type="button">Play text as signs</button>
+        <textarea id="hearing-text" rows="2" aria-label="Text to play as signs" placeholder="Try “happy” or “big and loud”"></textarea>
+        <button id="text-to-sign" class="button button-primary" type="button">Play as signs</button>
       </div>
-      <p id="text-sign-unmatched" class="muted" aria-live="polite">Unmatched words will be listed here.</p>
+      <p id="text-sign-unmatched" class="helper-text" aria-live="polite">Supported words only; unmatched words will be shown here.</p>
     </section>
 
-    <section class="footer-grid">
-      <article class="note"><span class="note-index">01</span><div><strong>Recognition runtime</strong><p>Camera frames are processed into hand and pose landmarks before model inference.</p></div></article>
-      <article class="note"><span class="note-index">02</span><div><strong>Avatar readiness</strong><p>Stick-figure clips use extracted landmarks. Unsupported glosses stay explicit; a rigged 3D avatar is future work.</p></div></article>
+    <section class="panel supported-panel" aria-labelledby="supported-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">The current vocabulary</p>
+          <h2 id="supported-heading">Supported signs</h2>
+        </div>
+        <p class="section-description">Select a word to see its skeleton animation.</p>
+      </div>
+      <div id="supported-signs" class="sign-chips" aria-label="Supported signs"></div>
     </section>
 
-    <section class="failure-panel panel" aria-labelledby="failure-heading">
-      <div class="panel-heading">
-        <div><p class="eyebrow">Failure analysis</p><h2 id="failure-heading">Recent clarifications</h2></div>
-        <button id="refresh-failures" class="button button-primary" type="button">Refresh</button>
+    <details class="developer-details">
+      <summary>Developer details</summary>
+      <div class="developer-content">
+        <p class="developer-copy">Experimental 11-gloss isolated-sign prototype. Camera images are converted to landmarks for recognition and are not stored. The avatar is a 2D landmark skeleton, not a rigged 3D model.</p>
+        <div class="panel-heading">
+          <div><p class="eyebrow">Diagnostics</p><h2>Recent clarifications</h2></div>
+          <button id="refresh-failures" class="button button-secondary" type="button">Refresh log</button>
+        </div>
+        <p id="failure-note" class="helper-text">Loading clarification events…</p>
+        <div class="failure-table-wrap">
+          <table>
+            <thead><tr><th>Reason</th><th>Gloss</th><th>Confidence</th></tr></thead>
+            <tbody id="failure-events"></tbody>
+          </table>
+        </div>
       </div>
-      <p id="failure-note" class="muted">Loading logged clarification events.</p>
-      <div class="failure-table-wrap">
-        <table>
-          <thead><tr><th>Fallback reason</th><th>Gloss</th><th>Confidence</th></tr></thead>
-          <tbody id="failure-events"></tbody>
-        </table>
-      </div>
-    </section>
+    </details>
   </main>
-  <footer class="privacy-note">Camera frames are processed into landmarks and are not stored.</footer>
+  <footer class="privacy-note">Your camera is used for live recognition. Frames are not recorded or stored.</footer>
   <script src="/app.js"></script>
 </body>
 </html>
