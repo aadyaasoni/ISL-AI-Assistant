@@ -12,10 +12,11 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = ROOT / "web"
-AVATAR_CLIPS_ROOT = ROOT / "avatar" / "clips"
-METADATA_PATH = ROOT / "data/include_metadata/metadata.csv"
-CHECKPOINT_PATH = ROOT / "training_outputs/bilstm_baseline/best_model.pt"
-LABEL_MAP_PATH = ROOT / "training_outputs/bilstm_baseline/label_mapping.json"
+AVATAR_CLIPS_ROOT = Path(os.environ.get("ISL_AVATAR_CLIPS_DIR", ROOT / "avatar" / "clips"))
+METADATA_PATH = Path(os.environ.get("ISL_DATASET_METADATA", ROOT / "data/include_metadata/metadata.csv"))
+CHECKPOINT_DIR = Path(os.environ.get("ISL_CHECKPOINT_DIR", ROOT / "training_outputs/bilstm_baseline"))
+CHECKPOINT_PATH = CHECKPOINT_DIR / "best_model.pt"
+LABEL_MAP_PATH = CHECKPOINT_DIR / "label_mapping.json"
 MEDIAPIPE_MODEL_ROOT = ROOT / "models" / "mediapipe"
 HAND_MODEL_NAME = "hand_landmarker.task"
 POSE_MODEL_NAME = "pose_landmarker_lite.task"
@@ -125,7 +126,10 @@ class AppHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/api/health":
-            return json_response(self, {"status": "ready", "labels": len(LABELS)})
+            return json_response(
+                self,
+                {"status": "ready", "labels": len(LABELS), "supported_glosses": LABELS},
+            )
         if parsed.path == "/api/samples":
             return json_response(
                 self,

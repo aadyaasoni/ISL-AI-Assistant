@@ -98,11 +98,13 @@ def evaluate(model, loader, device, labels):
     model.eval()
     targets = []
     predictions = []
+    probabilities = []
     with torch.no_grad():
         for features, frame_mask, lengths, batch_labels, _ in loader:
             logits = model(features.to(device), frame_mask.to(device), lengths)
             predictions.extend(logits.argmax(dim=1).cpu().tolist())
             targets.extend(batch_labels.tolist())
+            probabilities.extend(torch.softmax(logits, dim=1).cpu().tolist())
     report = classification_report(
         targets,
         predictions,
@@ -111,7 +113,38 @@ def evaluate(model, loader, device, labels):
         output_dict=True,
         zero_division=0,
     )
-    return targets, predictions, report
+    return targets, predictions, report, np.asarray(probabilities, dtype=np.float64)
+
+
+def calibration_metrics(targets, probabilities, bins=15):
+    """Return top-label ECE and multiclass Brier score as evaluation diagnostics."""
+    targets = np.asarray(targets, dtype=np.int64)
+    probabilities = np.asarray(probabilities, dtype=np.float64)
+    if probabilities.ndim != 2 or probabilities.shape[0] != len(targets):
+        raise ValueError("probabilities must have shape (sample_count, class_count)")
+    if not len(targets):
+        raise ValueError("calibration requires at least one sample")
+    confidence = probabilities.max(axis=1)
+    predictions = probabilities.argmax(axis=1)
+    correctness = (predictions == targets).astype(np.float64)
+    ece = 0.0
+    bin_rows = []
+    edges = np.linspace(0.0, 1.0, bins + 1)
+    for index in range(bins):
+        if index == bins - 1:
+            selected = (confidence >= edges[index]) & (confidence <= edges[index + 1])
+        else:
+            selected = (confidence >= edges[index]) & (confidence < edges[index + 1])
+        count = int(selected.sum())
+        if not count:
+            continue
+        accuracy = float(correctness[selected].mean())
+        mean_confidence = float(confidence[selected].mean())
+        ece += count / len(targets) * abs(accuracy - mean_confidence)
+        bin_rows.append({"lower": float(edges[index]), "upper": float(edges[index + 1]), "count": count, "accuracy": accuracy, "mean_confidence": mean_confidence})
+    one_hot = np.eye(probabilities.shape[1], dtype=np.float64)[targets]
+    brier = float(np.square(probabilities - one_hot).sum(axis=1).mean())
+    return {"method": "top-label ECE with equal-width bins", "bins": bins, "ece": float(ece), "multiclass_brier_score": brier, "bin_details": bin_rows}
 
 
 def parse_args():
@@ -183,36 +216,25 @@ def main():
 
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
-    test_targets, test_predictions, _ = evaluate(model, loaders["test"], device, labels)
-    test_support = Counter(test_targets)
-    evaluated_indices = [index for index in range(len(labels)) if test_support[index] > 0]
-    evaluated_labels = [labels[index] for index in evaluated_indices]
-    test_report = classification_report(
-        test_targets,
-        test_predictions,
-        labels=evaluated_indices,
-        target_names=evaluated_labels,
-        output_dict=True,
-        zero_division=0,
-    )
+    val_targets, val_predictions, val_report, val_probabilities = evaluate(model, loaders["val"], device, labels)
+    test_targets, test_predictions, test_report, test_probabilities = evaluate(model, loaders["test"], device, labels)
     metrics = {
         "device": str(device),
         "checkpoint_selection_metric": "validation_macro_f1",
         "test_used_during_training_or_checkpoint_selection": False,
         "best_validation_macro_f1": best_val_f1,
+        "validation_macro_f1": val_report["macro avg"]["f1-score"],
         "test_macro_f1": test_report["macro avg"]["f1-score"],
         "test_weighted_f1": test_report["weighted avg"]["f1-score"],
+        "validation_samples": len(val_targets),
         "test_samples": len(test_targets),
-        "per_class": {
-            label: test_report[label] if index in evaluated_indices else {
-                "evaluated": False,
-                "support": 0,
-                "note": "not evaluated on test: original test split contains 0 samples",
-            }
-            for index, label in enumerate(labels)
-        },
-        "test_evaluation_notes": {
-            "97. dry": "not evaluated on test: original test split contains 0 samples",
+        "per_class_validation": {label: val_report[label] for label in labels},
+        "per_class_test": {label: test_report[label] for label in labels},
+        "per_class": {label: test_report[label] for label in labels},
+        "confidence_calibration": {
+            "validation": calibration_metrics(val_targets, val_probabilities),
+            "test": calibration_metrics(test_targets, test_probabilities),
+            "note": "Diagnostic only; no post-hoc calibration parameters are fit or applied.",
         },
         "split_counts": {split: dict(Counter(row["label"] for row in split_rows[split])) for split in split_rows},
         "history": history,
@@ -220,8 +242,12 @@ def main():
     with (args.output_dir / "metrics.json").open("w", encoding="utf-8") as file:
         json.dump(metrics, file, indent=2)
     with (args.output_dir / "metrics.txt").open("w", encoding="utf-8") as file:
-        file.write(classification_report(test_targets, test_predictions, labels=evaluated_indices, target_names=evaluated_labels, zero_division=0))
-        file.write("\n97. dry: not evaluated on test because the original test split has 0 samples.\n")
+        file.write("Validation per-class report\n")
+        file.write(classification_report(val_targets, val_predictions, labels=list(range(len(labels))), target_names=labels, zero_division=0))
+        file.write("\nTest per-class report\n")
+        file.write(classification_report(test_targets, test_predictions, labels=list(range(len(labels))), target_names=labels, zero_division=0))
+        file.write("\nConfidence calibration (ECE / multiclass Brier)\n")
+        file.write(json.dumps(metrics["confidence_calibration"], indent=2) + "\n")
     print(f"best_validation_macro_f1={best_val_f1:.4f}")
     print(f"test_macro_f1={metrics['test_macro_f1']:.4f}")
     print(f"checkpoint={checkpoint_path}")

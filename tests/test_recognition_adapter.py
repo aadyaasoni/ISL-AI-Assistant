@@ -1,10 +1,13 @@
 import json
+import os
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 
-from scripts.recognition_adapter import RecognitionAdapter
+from scripts.recognition_adapter import RecognitionAdapter, resolve_checkpoint_paths
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +20,19 @@ def adapter():
 
 
 class RecognitionAdapterTests(unittest.TestCase):
+    def test_legacy_checkpoint_remains_default(self):
+        with patch.dict(os.environ, {}, clear=True):
+            checkpoint, label_map = resolve_checkpoint_paths()
+        self.assertEqual(checkpoint, CHECKPOINT)
+        self.assertEqual(label_map, LABEL_MAP)
+
+    def test_checkpoint_directory_environment_selects_checkpoint_and_mapping(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.dict(os.environ, {"ISL_CHECKPOINT_DIR": directory}):
+                checkpoint, label_map = resolve_checkpoint_paths()
+        self.assertEqual(checkpoint, Path(directory) / "best_model.pt")
+        self.assertEqual(label_map, Path(directory) / "label_mapping.json")
+
     def test_contract_fields(self):
         result = adapter().predict(np.zeros((4, 258), dtype=np.float32), np.ones((4, 75), dtype=np.float32), 123.0)
         self.assertEqual(set(result), {"gloss", "confidence", "timestamp"})

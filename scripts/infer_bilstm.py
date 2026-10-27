@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 
@@ -54,8 +55,9 @@ def predict_npz(npz_path, model, labels, device, timestamp=None):
 def main():
     parser = argparse.ArgumentParser(description="Run the BiLSTM and emit the recognition contract.")
     parser.add_argument("npz_path", type=Path)
-    parser.add_argument("--checkpoint", type=Path, default=Path("training_outputs/bilstm_baseline/best_model.pt"))
-    parser.add_argument("--label-map", type=Path, default=Path("training_outputs/bilstm_baseline/label_mapping.json"))
+    checkpoint_dir = Path(os.environ.get("ISL_CHECKPOINT_DIR", "training_outputs/bilstm_baseline"))
+    parser.add_argument("--checkpoint", type=Path, default=checkpoint_dir / "best_model.pt")
+    parser.add_argument("--label-map", type=Path, default=checkpoint_dir / "label_mapping.json")
     parser.add_argument("--timestamp", type=float, default=None)
     args = parser.parse_args()
     model, labels, device = load_predictor(args.checkpoint, args.label_map)
