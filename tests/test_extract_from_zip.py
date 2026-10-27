@@ -70,6 +70,21 @@ class ExtractFromZipTests(unittest.TestCase):
         split_class_rows(rows, seed=42)
         self.assertEqual({row["split"] for row in rows}, {"train", "val", "test"})
 
+    def test_minimum_size_class_has_train_validation_and_test_samples(self):
+        rows = [{"sample_id": str(index), "label": "class-a"} for index in range(15)]
+        split_class_rows(rows, seed=42)
+        counts = {split: sum(row["split"] == split for row in rows) for split in ("train", "val", "test")}
+        self.assertEqual(counts, {"train": 11, "val": 2, "test": 2})
+
+    def test_split_assignments_are_independent_of_input_order(self):
+        rows = [{"sample_id": str(index), "label": "class-a"} for index in range(20)]
+        shuffled_input = list(reversed(rows))
+        split_class_rows(rows, seed=17)
+        split_class_rows(shuffled_input, seed=17)
+        assignments = {row["sample_id"]: row["split"] for row in rows}
+        shuffled_assignments = {row["sample_id"]: row["split"] for row in shuffled_input}
+        self.assertEqual(assignments, shuffled_assignments)
+
     def test_extraction_resumes_and_reports_excluded_class(self):
         FakeExtractor.calls = []
         with tempfile.TemporaryDirectory() as directory:
