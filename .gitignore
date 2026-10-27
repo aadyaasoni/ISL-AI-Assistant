@@ -6,6 +6,17 @@ venv/
 !.env.example
 INCLUDE/
 data/raw/
+data/full_dataset/
+training_outputs/full_dataset/
+*.zip
+*.avi
+*.m4v
+*.mkv
+*.mov
+*.mp4
+*.mpeg
+*.mpg
+*.webm
 __pycache__/
 *.pyc
 .pytest_cache/
