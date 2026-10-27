@@ -39,6 +39,14 @@ class FakeExtractor:
         return features, mask
 
 
+class PartialFailureExtractor(FakeExtractor):
+    @classmethod
+    def extract_video(cls, video_path, *args, **kwargs):
+        if Path(video_path).read_bytes().startswith(b"b"):
+            raise RuntimeError("synthetic_decode_failure")
+        return super().extract_video(video_path, *args, **kwargs)
+
+
 class ExtractFromZipTests(unittest.TestCase):
     def make_zip(self, path):
         with zipfile.ZipFile(path, "w") as archive:
@@ -96,12 +104,34 @@ class ExtractFromZipTests(unittest.TestCase):
 
             report = json.loads(result["quality_report"].read_text())
             self.assertEqual(report["class_counts"], {"class-a": 5, "class-b": 2})
+            self.assertEqual(report["archive_video_counts"], {"class-a": 5, "class-b": 2})
+            self.assertEqual(report["failed_or_unprocessed_counts"], {"class-a": 0, "class-b": 0})
+            self.assertTrue(report["extraction_complete"])
             self.assertEqual(report["excluded_classes"]["class-b"]["valid_samples"], 2)
             self.assertFalse(report["signer_independent_split_verified"])
             self.assertTrue(result["training_metadata"].is_file())
             self.assertTrue((output_root / "progress.jsonl").is_file())
             self.assertEqual(list((output_root / "landmarks").glob("*.npz")).__len__(), 7)
             self.assertFalse(list(Path(tempfile.gettempdir()).glob("isl_video_*")))
+
+    def test_quality_report_explains_class_with_failed_videos(self):
+        with tempfile.TemporaryDirectory() as directory:
+            zip_path = Path(directory) / "input.zip"
+            output_root = Path(directory) / "output"
+            self.make_zip(zip_path)
+            result = process_zip(
+                zip_path,
+                output_root,
+                "hand.task",
+                "pose.task",
+                min_samples=5,
+                flush_every=3,
+                extractor=PartialFailureExtractor,
+            )
+            report = json.loads(result["quality_report"].read_text())
+            self.assertEqual(report["class_counts"]["class-b"], 0)
+            self.assertEqual(report["failed_or_unprocessed_counts"]["class-b"], 2)
+            self.assertIn("below minimum threshold", report["excluded_classes"]["class-b"]["reason"])
 
 
 if __name__ == "__main__":

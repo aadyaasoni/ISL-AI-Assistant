@@ -150,10 +150,16 @@ def build_row(member_name, label, category, output_path, processed_path, *, spli
     }
 
 
-def write_quality_report(path, counts, min_samples, included, excluded, split_counts):
+def write_quality_report(path, valid_counts, archive_counts, min_samples, included, excluded, split_counts, extraction_complete):
     report = {
         "minimum_valid_samples_per_class": min_samples,
-        "class_counts": counts,
+        "class_counts": valid_counts,
+        "archive_video_counts": archive_counts,
+        "failed_or_unprocessed_counts": {
+            label: max(0, count - valid_counts.get(label, 0))
+            for label, count in archive_counts.items()
+        },
+        "extraction_complete": extraction_complete,
         "included_classes": sorted(included),
         "excluded_classes": excluded,
         "split_counts": split_counts,
@@ -317,7 +323,17 @@ def process_zip(
         final_rows.append(updated)
     write_csv_atomic(metadata_path, final_rows)
     write_csv_atomic(training_metadata_path, train_rows)
-    write_quality_report(quality_path, class_counts, min_samples, included, excluded, split_counts)
+    extraction_complete = len(rows_by_member) >= len(archive_members)
+    write_quality_report(
+        quality_path,
+        class_counts,
+        archive_counts,
+        min_samples,
+        included,
+        excluded,
+        split_counts,
+        extraction_complete,
+    )
     print(f"Valid samples: {len(valid_rows)}; included classes: {len(included)}; excluded classes: {len(excluded)}")
     return {"metadata": metadata_path, "training_metadata": training_metadata_path, "quality_report": quality_path}
 
