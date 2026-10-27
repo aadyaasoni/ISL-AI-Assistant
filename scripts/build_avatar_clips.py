@@ -1,14 +1,18 @@
 import csv
+import argparse
 import json
+import os
 from pathlib import Path
 
 import numpy as np
 
 
 ROOT = Path(__file__).resolve().parents[1]
-METADATA_PATH = ROOT / "data/include_metadata/metadata.csv"
-LABEL_MAP_PATH = ROOT / "training_outputs/bilstm_baseline/label_mapping.json"
-CLIPS_DIR = ROOT / "avatar/clips"
+DEFAULT_CHECKPOINT_DIR = ROOT / "training_outputs/bilstm_baseline"
+CHECKPOINT_DIR = Path(os.environ.get("ISL_CHECKPOINT_DIR", DEFAULT_CHECKPOINT_DIR))
+METADATA_PATH = Path(os.environ.get("ISL_DATASET_METADATA", ROOT / "data/include_metadata/metadata.csv"))
+LABEL_MAP_PATH = CHECKPOINT_DIR / "label_mapping.json"
+CLIPS_DIR = Path(os.environ.get("ISL_AVATAR_CLIPS_DIR", ROOT / "avatar/clips"))
 FRAME_COUNT = 30
 
 
@@ -16,10 +20,10 @@ def clip_filename(gloss: str) -> str:
     return f"{gloss.strip().lower().replace(' ', '_')}.json"
 
 
-def representative_samples() -> dict[str, dict[str, str]]:
-    with LABEL_MAP_PATH.open(encoding="utf-8") as file:
+def representative_samples(metadata_path=METADATA_PATH, label_map_path=LABEL_MAP_PATH) -> dict[str, dict[str, str]]:
+    with Path(label_map_path).open(encoding="utf-8") as file:
         labels = json.load(file)
-    with METADATA_PATH.open(newline="", encoding="utf-8") as file:
+    with Path(metadata_path).open(newline="", encoding="utf-8") as file:
         rows = [
             row
             for row in csv.DictReader(file)
@@ -42,11 +46,12 @@ def rounded(values: np.ndarray) -> list:
     return np.round(values, 3).tolist()
 
 
-def build_clips() -> dict[str, str]:
-    CLIPS_DIR.mkdir(parents=True, exist_ok=True)
+def build_clips(metadata_path=METADATA_PATH, label_map_path=LABEL_MAP_PATH, clips_dir=CLIPS_DIR) -> dict[str, str]:
+    clips_dir = Path(clips_dir)
+    clips_dir.mkdir(parents=True, exist_ok=True)
     index = {}
 
-    for gloss, row in representative_samples().items():
+    for gloss, row in representative_samples(metadata_path, label_map_path).items():
         sample_path = ROOT / row["processed_file_path"]
         with np.load(sample_path) as sample:
             features = sample["features"]
@@ -81,13 +86,13 @@ def build_clips() -> dict[str, str]:
             "coordinate_space": "normalized-landmarks",
             "frames": frames,
         }
-        (CLIPS_DIR / filename).write_text(
+        (clips_dir / filename).write_text(
             json.dumps(payload, separators=(",", ":")) + "\n",
             encoding="utf-8",
         )
         index[gloss] = filename
 
-    (CLIPS_DIR / "index.json").write_text(
+    (clips_dir / "index.json").write_text(
         json.dumps({"gloss_to_clip": index}, indent=2) + "\n",
         encoding="utf-8",
     )
@@ -95,6 +100,11 @@ def build_clips() -> dict[str, str]:
 
 
 if __name__ == "__main__":
-    clips = build_clips()
-    total_bytes = sum(path.stat().st_size for path in CLIPS_DIR.glob("*.json"))
+    parser = argparse.ArgumentParser(description="Generate landmark skeleton clips for labels in a checkpoint mapping.")
+    parser.add_argument("--metadata", type=Path, default=METADATA_PATH)
+    parser.add_argument("--label-map", type=Path, default=LABEL_MAP_PATH)
+    parser.add_argument("--clips-dir", type=Path, default=CLIPS_DIR)
+    args = parser.parse_args()
+    clips = build_clips(args.metadata, args.label_map, args.clips_dir)
+    total_bytes = sum(path.stat().st_size for path in args.clips_dir.glob("*.json"))
     print(f"Built {len(clips)} skeleton clips ({total_bytes} bytes).")

@@ -759,16 +759,22 @@ async function loadSamples() {
 }
 
 async function renderSupportedSigns() {
-  const response = await fetch("/avatar/clips/index.json");
-  if (!response.ok) throw new Error("Supported sign list is unavailable.");
-  avatarClipIndex = (await response.json()).gloss_to_clip;
+  const [healthResponse, clipsResponse] = await Promise.all([
+    fetch("/api/health"),
+    fetch("/avatar/clips/index.json"),
+  ]);
+  if (!healthResponse.ok || !clipsResponse.ok) throw new Error("Supported sign list is unavailable.");
+  const health = await healthResponse.json();
+  avatarClipIndex = (await clipsResponse.json()).gloss_to_clip;
   const container = document.querySelector("#supported-signs");
-  Object.keys(avatarClipIndex).forEach((gloss) => {
+  (health.supported_glosses || []).forEach((gloss) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "sign-chip";
-    button.textContent = friendlyWord(gloss);
-    button.setAttribute("aria-label", `Play ${friendlyWord(gloss)} skeleton`);
+    const hasClip = Boolean(avatarClipIndex[gloss] || avatarClipIndex[gloss.toLowerCase()]);
+    button.className = hasClip ? "sign-chip" : "sign-chip is-unavailable";
+    button.textContent = hasClip ? friendlyWord(gloss) : `${friendlyWord(gloss)} · clip pending`;
+    button.disabled = !hasClip;
+    button.setAttribute("aria-label", hasClip ? `Play ${friendlyWord(gloss)} skeleton` : `${friendlyWord(gloss)} recognized; avatar clip unavailable`);
     button.addEventListener("click", () => playGlosses([gloss]));
     container.append(button);
   });

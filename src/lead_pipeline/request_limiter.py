@@ -1,6 +1,7 @@
 import threading
 import time
 from collections import deque
+from typing import Optional
 
 
 class RequestLimiter:
@@ -12,7 +13,7 @@ class RequestLimiter:
         self._requests: dict[str, deque[float]] = {}
         self._lock = threading.Lock()
 
-    def allow(self, client_id: str, now: float | None = None) -> bool:
+    def allow(self, client_id: str, now: Optional[float] = None) -> bool:
         current_time = time.monotonic() if now is None else now
         with self._lock:
             requests = self._requests.setdefault(client_id, deque())
