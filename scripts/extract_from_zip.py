@@ -109,6 +109,13 @@ def load_existing_rows(path):
         return {row["original_video_path"]: row for row in csv.DictReader(file)}
 
 
+def append_progress(path, event):
+    with Path(path).open("a", encoding="utf-8") as log_file:
+        log_file.write(json.dumps(event) + "\n")
+        log_file.flush()
+        os.fsync(log_file.fileno())
+
+
 def inspect_sequence(npz_path):
     with np.load(npz_path) as data:
         features = data["features"]
@@ -217,6 +224,14 @@ def process_zip(
                             "failure_reason": "",
                         })
                         rows_by_member[member_name] = row
+                        append_progress(log_path, {
+                            "index": index,
+                            "total": len(videos),
+                            "video": member_name,
+                            "status": "skipped_existing_output",
+                            "valid": "True",
+                            "failure_reason": "",
+                        })
                         continue
                     except Exception:
                         output_path.unlink(missing_ok=True)
@@ -259,10 +274,15 @@ def process_zip(
                         temp_path.unlink(missing_ok=True)
                     temp_output.unlink(missing_ok=True)
                 rows_by_member[member_name] = row
-                with log_path.open("a", encoding="utf-8") as log_file:
-                    log_file.write(json.dumps({"index": index, "total": len(videos), "video": member_name, "valid": row["valid"], "failure_reason": row["failure_reason"], "elapsed_seconds": round(time.time() - start, 3)}) + "\n")
-                    log_file.flush()
-                    os.fsync(log_file.fileno())
+                append_progress(log_path, {
+                    "index": index,
+                    "total": len(videos),
+                    "video": member_name,
+                    "status": "processed",
+                    "valid": row["valid"],
+                    "failure_reason": row["failure_reason"],
+                    "elapsed_seconds": round(time.time() - start, 3),
+                })
                 print(f"[{index}/{len(videos)}] {member_name}: {row['failure_reason'] or 'ok'}")
                 if index - last_flush >= flush_every:
                     write_csv_atomic(metadata_path, list(rows_by_member.values()))

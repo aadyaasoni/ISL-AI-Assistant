@@ -90,6 +90,9 @@ class ExtractFromZipTests(unittest.TestCase):
                 extractor=FakeExtractor,
             )
             self.assertEqual(len(FakeExtractor.calls), first_run_calls)
+            progress = [json.loads(line) for line in (output_root / "progress.jsonl").read_text().splitlines()]
+            self.assertEqual(len(progress), 14)
+            self.assertTrue(all(event["status"] == "skipped_existing_output" for event in progress[7:]))
 
             report = json.loads(result["quality_report"].read_text())
             self.assertEqual(report["class_counts"], {"class-a": 5, "class-b": 2})
